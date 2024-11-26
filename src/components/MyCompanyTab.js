@@ -63,9 +63,11 @@ const MyCompanyTab = () => {
     try {
       setLoading(true);
       const recruiterCompanyId = await peopleService.getRecruiterCompanyId();
-      const data = await companyService.getCompanyById(recruiterCompanyId);
+      //Hard coding - Will change later
+      const data = await companyService.getCompanyById('67418bc7c9c3fd8d1d406a2d');
       setCompany(data);
     } catch (error) {
+      console.log(error)
       setError('Failed to fetch company details');
     } finally {
       setLoading(false);

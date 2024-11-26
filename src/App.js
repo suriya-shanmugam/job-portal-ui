@@ -127,7 +127,6 @@ function MainContent() {
           <Tabs 
             value={currentTab} 
             onChange={handleTabChange} 
-            centered
             variant="scrollable"
             scrollButtons="auto"
           >

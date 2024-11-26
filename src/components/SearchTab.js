@@ -221,7 +221,7 @@ const SearchTab = () => {
                               <>
                                 <Typography variant="body2">{job.company}</Typography>
                                 <Typography variant="body2">
-                                  📍 {job.location} | 💰 {job.salary}
+                                  📍 {job.location} | 💰 {job.salary.start} - {job.salary.end}
                                 </Typography>
                               </>
                             }
@@ -261,7 +261,7 @@ const SearchTab = () => {
                     {selectedJob.company}
                   </Typography>
                   <Typography variant="body2" paragraph>
-                    📍 {selectedJob.location} | 💰 {selectedJob.salary}
+                    📍 {selectedJob.location} | 💰 {selectedJob.salary.start} - {selectedJob.salary.end}
                   </Typography>
                   <Typography variant="body2" color="textSecondary">
                     🕒 Posted: {selectedJob.posted} | 💼 {selectedJob.type}

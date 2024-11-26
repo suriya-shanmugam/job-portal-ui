@@ -74,7 +74,7 @@ const JobsTab = () => {
                 {job.company}
               </Typography>
               <Typography variant="body2" paragraph>
-                📍 {job.location} | 💰 {job.salary}
+                📍 {job.location} | 💰 {job.salary.start} - {job.salary.end}
               </Typography>
               <Typography variant="body2" color="textSecondary">
                 🕒 Posted: {job.posted} | 💼 {job.type}

@@ -73,9 +73,12 @@ const CompanyProfile = () => {
   const fetchCompanyDetails = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await companyService.getCompanyById(Number(id));
+      console.log("Hey!")
+      console.log(id)
+      const data = await companyService.getCompanyById(id);
       setCompany(data);
     } catch (error) {
+      console.log(error);
       setError('Failed to fetch company details');
     } finally {
       setLoading(false);
@@ -84,7 +87,7 @@ const CompanyProfile = () => {
 
   const fetchCompanyJobs = useCallback(async () => {
     try {
-      const response = await companyService.getCompanyJobs(Number(id), jobsPage, JOBS_PER_PAGE);
+      const response = await companyService.getCompanyJobs(id, jobsPage, JOBS_PER_PAGE);
       setJobs(response.jobs);
       setTotalJobPages(response.totalPages);
     } catch (error) {
@@ -264,15 +267,6 @@ const CompanyProfile = () => {
             <Typography paragraph>
               {company.description}
             </Typography>
-
-            <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>
-              Benefits & Perks
-            </Typography>
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-              {company.benefits.map((benefit, index) => (
-                <Chip key={index} label={benefit} />
-              ))}
-            </Box>
           </Paper>
         </Grid>
 
