@@ -1,140 +1,181 @@
-// Dummy data for feeds
-const dummyFeeds = Array.from({ length: 20 }, (_, index) => ({
-  id: index + 1,
-  author: {
-    id: Math.floor(Math.random() * 100),
-    name: `User ${Math.floor(Math.random() * 100)}`,
-    avatar: null
-  },
-  content: `This is a sample post ${index + 1} about job opportunities and career growth. #careers #jobs`,
-  timestamp: new Date(Date.now() - Math.floor(Math.random() * 7 * 24 * 60 * 60 * 1000)).toISOString(),
-  likes: Math.floor(Math.random() * 50),
-  comments: Array.from({ length: Math.floor(Math.random() * 5) }, (_, commentIndex) => ({
-    id: `${index}-${commentIndex}`,
-    author: {
-      id: Math.floor(Math.random() * 100),
-      name: `Commenter ${Math.floor(Math.random() * 100)}`,
-      avatar: null
-    },
-    content: `This is a sample comment ${commentIndex + 1} on post ${index + 1}`,
-    timestamp: new Date(Date.now() - Math.floor(Math.random() * 24 * 60 * 60 * 1000)).toISOString(),
-    likes: Math.floor(Math.random() * 10)
-  }))
-}));
+import axios from 'axios';
 
-// Dummy notifications
-const dummyNotifications = Array.from({ length: 15 }, (_, index) => ({
-  id: index + 1,
-  type: ['like', 'comment', 'mention', 'job'][Math.floor(Math.random() * 4)],
-  content: `Notification ${index + 1} about some activity`,
-  from: {
-    id: Math.floor(Math.random() * 100),
-    name: `User ${Math.floor(Math.random() * 100)}`
-  },
-  timestamp: new Date(Date.now() - Math.floor(Math.random() * 7 * 24 * 60 * 60 * 1000)).toISOString(),
-  read: Math.random() > 0.5
-}));
+const API_BASE_URL = 'http://localhost:3000/api/v1/applicants';
 
-// Simulate API delay
-const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+// Helper function to get applicant ID from localStorage or another source
+const getApplicantId = () => {
+  // TODO: Replace with actual implementation to get applicant ID
+  return "67412939b92a60af533a2b1d"
+  //return localStorage.getItem('applicantId') || '';
+};
 
 export const feedService = {
   // Get paginated feeds
   getFeeds: async (page = 1, limit = 5) => {
-    await delay(500);
-    const startIndex = (page - 1) * limit;
-    const endIndex = startIndex + limit;
-    const paginatedFeeds = dummyFeeds.slice(startIndex, endIndex);
+    try {
+      const applicantId = getApplicantId();
+      const response = await axios.get(`${API_BASE_URL}/${applicantId}/feeds`, {
+        params: { page, limit }
+      });
 
-    return {
-      feeds: paginatedFeeds,
-      totalPages: Math.ceil(dummyFeeds.length / limit),
-      currentPage: page,
-      totalFeeds: dummyFeeds.length
-    };
+      const { data } = response.data;
+      return {
+        feeds: data.map(feed => ({
+          id: feed._id,
+          title: feed.title,
+          content: feed.content,
+          timestamp: feed.createdAt,
+          author: {
+            id: feed.userRef._id,
+            name: feed.userRef.name,
+            description: feed.userRef.description,
+            industry: feed.userRef.industry,
+            location: feed.userRef.location
+          },
+          likes: feed.likes.length,
+          comments: feed.comments.map(comment => ({
+            id: comment._id,
+            content: comment.content,
+            timestamp: comment.createdAt,
+            author: {
+              id: comment.userRef,
+              name: comment.createdByType, // Using createdByType as name for now
+              avatar: null
+            }
+          }))
+        })),
+        totalPages: Math.ceil(data.length / limit),
+        currentPage: page,
+        totalFeeds: data.length
+      };
+    } catch (error) {
+      console.error('Error fetching feeds:', error);
+      throw error;
+    }
   },
 
   // Create new post
-  createPost: async (content) => {
-    await delay(300);
-    const newPost = {
-      id: dummyFeeds.length + 1,
-      author: {
-        id: 1, // Current user
-        name: 'Current User',
-        avatar: null
-      },
-      content,
-      timestamp: new Date().toISOString(),
-      likes: 0,
-      comments: []
-    };
-    dummyFeeds.unshift(newPost);
-    return newPost;
+  createPost: async (content, title) => {
+    try {
+      const applicantId = getApplicantId();
+      const response = await axios.post(`${API_BASE_URL}/${applicantId}/feeds`, {
+        title,
+        content
+      });
+
+      const { data } = response.data;
+      return {
+        id: data._id,
+        title: data.title,
+        content: data.content,
+        timestamp: data.createdAt,
+        author: {
+          id: data.userRef._id,
+          name: data.userRef.name,
+          avatar: null
+        },
+        likes: [],
+        comments: []
+      };
+    } catch (error) {
+      console.error('Error creating post:', error);
+      throw error;
+    }
   },
 
   // Add comment to post
   addComment: async (postId, content) => {
-    await delay(200);
-    const post = dummyFeeds.find(f => f.id === postId);
-    if (!post) throw new Error('Post not found');
+    try {
+      const applicantId = getApplicantId();
+      const response = await axios.post(`${API_BASE_URL}/${applicantId}/feeds/${postId}/comments`, {
+        content
+      });
 
-    const newComment = {
-      id: `${postId}-${post.comments.length + 1}`,
-      author: {
-        id: 1, // Current user
-        name: 'Current User',
-        avatar: null
-      },
-      content,
-      timestamp: new Date().toISOString(),
-      likes: 0
-    };
-    post.comments.push(newComment);
-    return newComment;
+      const { data } = response.data;
+      return {
+        id: data._id,
+        content: data.content,
+        timestamp: data.createdAt,
+        author: {
+          id: data.userRef,
+          name: data.createdByType,
+          avatar: null
+        }
+      };
+    } catch (error) {
+      console.error('Error adding comment:', error);
+      throw error;
+    }
   },
 
   // Toggle like on post
   toggleLike: async (postId) => {
-    await delay(100);
-    const post = dummyFeeds.find(f => f.id === postId);
-    if (!post) throw new Error('Post not found');
-    post.likes += 1; // In real app, this would toggle
-    return post.likes;
+    try {
+      const applicantId = getApplicantId();
+      const response = await axios.post(`${API_BASE_URL}/${applicantId}/feeds/${postId}/like`);
+      const { data } = response.data;
+      return data.likes.length;
+    } catch (error) {
+      console.error('Error toggling like:', error);
+      throw error;
+    }
   }
 };
 
 export const notificationService = {
   // Get notifications
   getNotifications: async (page = 1, limit = 10) => {
-    await delay(300);
-    const startIndex = (page - 1) * limit;
-    const endIndex = startIndex + limit;
-    const paginatedNotifications = dummyNotifications.slice(startIndex, endIndex);
+    try {
+      const applicantId = getApplicantId();
+      const response = await axios.get(`${API_BASE_URL}/${applicantId}/notifications`, {
+        params: { page, limit }
+      });
 
-    return {
-      notifications: paginatedNotifications,
-      totalPages: Math.ceil(dummyNotifications.length / limit),
-      currentPage: page,
-      totalNotifications: dummyNotifications.length,
-      unreadCount: dummyNotifications.filter(n => !n.read).length
-    };
+      const { data } = response.data;
+      return {
+        notifications: data.map(notification => ({
+          id: notification._id,
+          type: notification.type,
+          content: notification.content,
+          from: {
+            id: notification.from._id,
+            name: notification.from.name
+          },
+          timestamp: notification.createdAt,
+          read: notification.read
+        })),
+        totalPages: Math.ceil(data.length / limit),
+        currentPage: page,
+        totalNotifications: data.length,
+        unreadCount: data.filter(n => !n.read).length
+      };
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+      throw error;
+    }
   },
 
   // Mark notification as read
   markAsRead: async (notificationId) => {
-    await delay(100);
-    const notification = dummyNotifications.find(n => n.id === notificationId);
-    if (notification) {
-      notification.read = true;
+    try {
+      const applicantId = getApplicantId();
+      const response = await axios.patch(`${API_BASE_URL}/${applicantId}/notifications/${notificationId}/read`);
+      return response.data.data;
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+      throw error;
     }
-    return notification;
   },
 
   // Mark all notifications as read
   markAllAsRead: async () => {
-    await delay(200);
-    dummyNotifications.forEach(n => n.read = true);
-    return true;
+    try {
+      const applicantId = getApplicantId();
+      const response = await axios.patch(`${API_BASE_URL}/${applicantId}/notifications/read-all`);
+      return response.data.success;
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+      throw error;
+    }
   }
 };

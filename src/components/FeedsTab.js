@@ -28,7 +28,8 @@ const FeedsTab = () => {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
-  const [newPost, setNewPost] = useState('');
+  const [newPostTitle, setNewPostTitle] = useState('');
+  const [newPostContent, setNewPostContent] = useState('');
   const [expandedComments, setExpandedComments] = useState({});
   const [commentInputs, setCommentInputs] = useState({});
   const [submitting, setSubmitting] = useState(false);
@@ -52,12 +53,13 @@ const FeedsTab = () => {
   };
 
   const handleCreatePost = async () => {
-    if (!newPost.trim()) return;
+    if (!newPostTitle.trim() || !newPostContent.trim()) return;
     
     try {
       setSubmitting(true);
-      await feedService.createPost(newPost);
-      setNewPost('');
+      await feedService.createPost(newPostContent, newPostTitle);
+      setNewPostTitle('');
+      setNewPostContent('');
       // Refresh feeds
       setPage(1);
       fetchFeeds();
@@ -128,17 +130,24 @@ const FeedsTab = () => {
         </Typography>
         <TextField
           fullWidth
+          placeholder="Post Title"
+          value={newPostTitle}
+          onChange={(e) => setNewPostTitle(e.target.value)}
+          sx={{ mb: 2 }}
+        />
+        <TextField
+          fullWidth
           multiline
           rows={3}
           placeholder="What's on your mind?"
-          value={newPost}
-          onChange={(e) => setNewPost(e.target.value)}
+          value={newPostContent}
+          onChange={(e) => setNewPostContent(e.target.value)}
           sx={{ mb: 2 }}
         />
         <Button
           variant="contained"
           onClick={handleCreatePost}
-          disabled={submitting || !newPost.trim()}
+          disabled={submitting || !newPostTitle.trim() || !newPostContent.trim()}
           endIcon={<SendIcon />}
         >
           Post
@@ -151,7 +160,9 @@ const FeedsTab = () => {
           <Card key={post.id}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <Avatar sx={{ mr: 2 }}>{post.author.name[0]}</Avatar>
+                <Avatar sx={{ mr: 2 }}>
+                  {post.author.name[0]}
+                </Avatar>
                 <Box>
                   <Typography variant="subtitle1">
                     {post.author.name}
@@ -161,6 +172,10 @@ const FeedsTab = () => {
                   </Typography>
                 </Box>
               </Box>
+              
+              <Typography variant="h6" gutterBottom>
+                {post.title}
+              </Typography>
               
               <Typography variant="body1" paragraph>
                 {post.content}
