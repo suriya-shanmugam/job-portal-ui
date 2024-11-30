@@ -12,9 +12,15 @@ export const authService = {
 
       const { user, token } = response.data;
       
-      // Store token and user info
+      // Store token, user info, and user ID
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
+      localStorage.setItem('userId', user.id);
+      
+      // Store companyId if user is a recruiter
+      if (user.role === 'Recruiter' && user.companyId) {
+        localStorage.setItem('companyId', user.companyId);
+      }
       
       return {
         success: true,
@@ -60,9 +66,15 @@ export const authService = {
       const response = await axios.post(`${API_BASE_URL}/users`, payload);
       const { user, token } = response.data;
 
-      // Store token and user info immediately after successful signup
+      // Store token, user info, and user ID
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
+      localStorage.setItem('userId', user.id);
+
+      // Store companyId if user is a recruiter
+      if (user.role === 'Recruiter' && user.companyId) {
+        localStorage.setItem('companyId', user.companyId);
+      }
 
       return {
         success: true,
@@ -81,6 +93,8 @@ export const authService = {
   signOut: () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    localStorage.removeItem('userId');
+    localStorage.removeItem('companyId'); // Remove companyId on sign out
   },
 
   getCurrentUser: () => {
@@ -94,6 +108,14 @@ export const authService = {
 
   getToken: () => {
     return localStorage.getItem('token');
+  },
+
+  getUserId: () => {
+    return localStorage.getItem('userId');
+  },
+
+  getCompanyId: () => {
+    return localStorage.getItem('companyId');
   },
 
   isRecruiter: () => {
