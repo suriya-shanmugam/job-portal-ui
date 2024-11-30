@@ -28,6 +28,7 @@ import PersonProfile from './components/PersonProfile';
 import MyCompanyTab from './components/MyCompanyTab';
 import NotificationPanel from './components/NotificationPanel';
 import SignIn from './components/SignIn';
+import SignUp from './components/SignUp';
 import { authService } from './services/authService';
 import './App.css';
 
@@ -93,8 +94,8 @@ function MainContent() {
     }
   }, [location.pathname, tabs]);
 
-  if (location.pathname === '/signin') {
-    return <SignIn />;
+  if (location.pathname === '/signin' || location.pathname === '/signup') {
+    return location.pathname === '/signin' ? <SignIn /> : <SignUp />;
   }
 
   return (
@@ -137,6 +138,7 @@ function MainContent() {
         <Box sx={{ p: 2 }}>
           <Routes>
             <Route path="/signin" element={<SignIn />} />
+            <Route path="/signup" element={<SignUp />} />
             <Route
               path="/"
               element={

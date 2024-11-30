@@ -9,7 +9,7 @@ import {
   Alert,
   CircularProgress
 } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { authService } from '../services/authService';
 
 const SignIn = () => {
@@ -104,6 +104,14 @@ const SignIn = () => {
             >
               {loading ? <CircularProgress size={24} /> : 'Sign In'}
             </Button>
+
+            <Box sx={{ textAlign: 'center' }}>
+              <Link to="/signup" style={{ textDecoration: 'none' }}>
+                <Typography color="primary">
+                  Don't have an account? Sign Up
+                </Typography>
+              </Link>
+            </Box>
           </form>
         </Paper>
       </Box>
