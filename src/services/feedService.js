@@ -5,7 +5,7 @@ const API_BASE_URL = 'http://localhost:3000/api/v1/applicants';
 // Helper function to get applicant ID from localStorage or another source
 const getApplicantId = () => {
   // TODO: Replace with actual implementation to get applicant ID
-  return "67412939b92a60af533a2b1d"
+  return "674a3d368f2ad6ef7520f733"
   //return localStorage.getItem('applicantId') || '';
 };
 

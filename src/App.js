@@ -6,14 +6,16 @@ import {
   AppBar, 
   Toolbar, 
   Typography,
-  Container
+  Container,
+  Button
 } from '@mui/material';
 import { 
   BrowserRouter as Router,
   Routes,
   Route,
   useNavigate,
-  useLocation
+  useLocation,
+  Navigate
 } from 'react-router-dom';
 import JobsTab from './components/JobsTab';
 import SearchTab from './components/SearchTab';
@@ -25,89 +27,75 @@ import PeopleTab from './components/PeopleTab';
 import PersonProfile from './components/PersonProfile';
 import MyCompanyTab from './components/MyCompanyTab';
 import NotificationPanel from './components/NotificationPanel';
-import { peopleService } from './services/peopleService';
+import SignIn from './components/SignIn';
+import { authService } from './services/authService';
 import './App.css';
+
+// Protected Route component
+const ProtectedRoute = ({ children }) => {
+  const isAuthenticated = authService.isAuthenticated();
+  return isAuthenticated ? children : <Navigate to="/signin" />;
+};
 
 function MainContent() {
   const navigate = useNavigate();
   const location = useLocation();
   const [currentTab, setCurrentTab] = useState(0);
   const [isRecruiter, setIsRecruiter] = useState(false);
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
-    checkRecruiterStatus();
+    const currentUser = authService.getCurrentUser();
+    if (currentUser) {
+      setUser(currentUser);
+      setIsRecruiter(currentUser.role === 'Recruiter');
+    }
   }, []);
 
-  const checkRecruiterStatus = async () => {
-    try {
-      const recruiterStatus = await peopleService.isRecruiter();
-      setIsRecruiter(recruiterStatus);
-    } catch (error) {
-      console.error('Failed to check recruiter status:', error);
-    }
+  const handleSignOut = () => {
+    authService.signOut();
+    navigate('/signin');
   };
+
+  // Get tabs based on user role
+  const getTabs = () => {
+    if (isRecruiter) {
+      return [
+        { label: 'Feeds', path: '/feeds' },
+        { label: 'People', path: '/people' },
+        { label: 'Company', path: '/companies' },
+        { label: 'MyCompany', path: '/mycompany' }
+      ];
+    }
+    return [
+      { label: 'Feeds', path: '/feeds' },
+      { label: 'Companies', path: '/companies' },
+      { label: 'Jobs', path: '/' },
+      { label: 'People', path: '/people' },
+      { label: 'Profile', path: '/profile' }
+    ];
+  };
+
+  const tabs = getTabs();
 
   // Update current tab based on location
   const handleTabChange = (event, newValue) => {
     setCurrentTab(newValue);
-    switch (newValue) {
-      case 0:
-        navigate('/');
-        break;
-      case 1:
-        navigate('/search');
-        break;
-      case 2:
-        navigate('/feeds');
-        break;
-      case 3:
-        navigate('/companies');
-        break;
-      case 4:
-        navigate('/people');
-        break;
-      case 5:
-        navigate('/profile');
-        break;
-      case 6:
-        navigate('/mycompany');
-        break;
-      default:
-        navigate('/');
-    }
+    navigate(tabs[newValue].path);
   };
 
   // Set initial tab based on current route
   useEffect(() => {
-    switch (location.pathname) {
-      case '/search':
-        setCurrentTab(1);
-        break;
-      case '/feeds':
-        setCurrentTab(2);
-        break;
-      case '/companies':
-        setCurrentTab(3);
-        break;
-      case '/people':
-        setCurrentTab(4);
-        break;
-      case '/profile':
-        setCurrentTab(5);
-        break;
-      case '/mycompany':
-        setCurrentTab(6);
-        break;
-      default:
-        if (location.pathname.startsWith('/company/')) {
-          setCurrentTab(3);
-        } else if (location.pathname.startsWith('/person/')) {
-          setCurrentTab(4);
-        } else {
-          setCurrentTab(0);
-        }
+    const currentPath = location.pathname;
+    const tabIndex = tabs.findIndex(tab => tab.path === currentPath);
+    if (tabIndex !== -1) {
+      setCurrentTab(tabIndex);
     }
-  }, [location.pathname]);
+  }, [location.pathname, tabs]);
+
+  if (location.pathname === '/signin') {
+    return <SignIn />;
+  }
 
   return (
     <div className="App">
@@ -117,7 +105,17 @@ function MainContent() {
             <Typography variant="h6" component="div">
               Job Portal
             </Typography>
-            <NotificationPanel />
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              {user && (
+                <Typography variant="body1">
+                  Welcome, {user.firstName} {user.lastName}
+                </Typography>
+              )}
+              <NotificationPanel />
+              <Button color="inherit" onClick={handleSignOut}>
+                Sign Out
+              </Button>
+            </Box>
           </Toolbar>
         </Container>
       </AppBar>
@@ -130,27 +128,83 @@ function MainContent() {
             variant="scrollable"
             scrollButtons="auto"
           >
-            <Tab label="Jobs" />
-            <Tab label="Search" />
-            <Tab label="Feeds" />
-            <Tab label="Companies" />
-            <Tab label="People" />
-            <Tab label="Profile" />
-            {isRecruiter && <Tab label="My Company" />}
+            {tabs.map((tab, index) => (
+              <Tab key={tab.label} label={tab.label} />
+            ))}
           </Tabs>
         </Box>
 
         <Box sx={{ p: 2 }}>
           <Routes>
-            <Route path="/" element={<JobsTab />} />
-            <Route path="/search" element={<SearchTab />} />
-            <Route path="/feeds" element={<FeedsTab />} />
-            <Route path="/companies" element={<CompaniesTab />} />
-            <Route path="/company/:id" element={<CompanyProfile />} />
-            <Route path="/people" element={<PeopleTab />} />
-            <Route path="/person/:id" element={<PersonProfile />} />
-            <Route path="/profile" element={<ProfileTab />} />
-            {isRecruiter && <Route path="/mycompany" element={<MyCompanyTab />} />}
+            <Route path="/signin" element={<SignIn />} />
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <JobsTab />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/feeds"
+              element={
+                <ProtectedRoute>
+                  <FeedsTab />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/companies"
+              element={
+                <ProtectedRoute>
+                  <CompaniesTab />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/company/:id"
+              element={
+                <ProtectedRoute>
+                  <CompanyProfile />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/people"
+              element={
+                <ProtectedRoute>
+                  <PeopleTab />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/person/:id"
+              element={
+                <ProtectedRoute>
+                  <PersonProfile />
+                </ProtectedRoute>
+              }
+            />
+            {!isRecruiter && (
+              <Route
+                path="/profile"
+                element={
+                  <ProtectedRoute>
+                    <ProfileTab />
+                  </ProtectedRoute>
+                }
+              />
+            )}
+            {isRecruiter && (
+              <Route
+                path="/mycompany"
+                element={
+                  <ProtectedRoute>
+                    <MyCompanyTab />
+                  </ProtectedRoute>
+                }
+              />
+            )}
           </Routes>
         </Box>
       </Box>
