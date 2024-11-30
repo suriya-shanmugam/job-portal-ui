@@ -1,139 +1,130 @@
-// Dummy people data
-const dummyPeople = Array.from({ length: 30 }, (_, index) => ({
-  id: index + 1,
-  name: `User ${index + 1}`,
-  avatar: null,
-  role: ['Software Engineer', 'Product Manager', 'UX Designer', 'Data Scientist', 'DevOps Engineer'][index % 5],
-  company: `Tech Company ${Math.floor(index / 3) + 1}`,
-  location: ['New York', 'San Francisco', 'London', 'Berlin', 'Tokyo'][index % 5],
-  experience: `${Math.floor(Math.random() * 15) + 1} years`,
-  skills: [
-    'JavaScript',
-    'React',
-    'Node.js',
-    'Python',
-    'AWS',
-    'UI/UX',
-    'Product Management',
-    'Agile',
-    'DevOps'
-  ].slice(0, Math.floor(Math.random() * 5) + 3),
-  education: {
-    school: `University ${Math.floor(index / 5) + 1}`,
-    degree: ['Computer Science', 'Business Administration', 'Design', 'Data Science'][index % 4],
-    year: 2010 + Math.floor(Math.random() * 13)
-  },
-  followers: Math.floor(Math.random() * 1000),
-  isFollowing: Math.random() > 0.5,
-  bio: `Experienced professional with a passion for technology and innovation. ${Math.floor(Math.random() * 15) + 1} years of industry experience.`,
-  connections: Math.floor(Math.random() * 500),
-  isRecruiter: Math.random() > 0.8, // 20% chance of being a recruiter
-  companyId: Math.floor(index / 3) + 1 // Link to company for recruiters
-}));
+import axios from 'axios';
+import { authService } from './authService';
 
-// Simulate API delay
-const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+const API_BASE_URL = 'http://localhost:3000/api/v1';
 
 export const peopleService = {
   // Get paginated people with search and filters
   getPeople: async (page = 1, limit = 10, search = '', filters = {}) => {
-    await delay(500);
-    
-    let filteredPeople = [...dummyPeople];
-    
-    // Apply search
-    if (search) {
-      const searchLower = search.toLowerCase();
-      filteredPeople = filteredPeople.filter(person => 
-        person.name.toLowerCase().includes(searchLower) ||
-        person.role.toLowerCase().includes(searchLower) ||
-        person.company.toLowerCase().includes(searchLower) ||
-        person.skills.some(skill => skill.toLowerCase().includes(searchLower))
-      );
+    try {
+      const currentUserId = authService.getUserId();
+      const response = await axios.get(`${API_BASE_URL}/applicants/${currentUserId}/allapplicants`);
+      
+      let filteredPeople = [...response.data];
+      
+      // Apply search
+      if (search) {
+        const searchLower = search.toLowerCase();
+        filteredPeople = filteredPeople.filter(person => 
+          person.userId.firstName.toLowerCase().includes(searchLower) ||
+          person.userId.lastName.toLowerCase().includes(searchLower) ||
+          person.userId.role.toLowerCase().includes(searchLower) ||
+          (person.skills && person.skills.some(skill => skill.toLowerCase().includes(searchLower)))
+        );
+      }
+
+      // Apply role filter
+      if (filters.role) {
+        filteredPeople = filteredPeople.filter(person => 
+          person.userId.role === filters.role
+        );
+      }
+
+      // Calculate pagination
+      const startIndex = (page - 1) * limit;
+      const endIndex = startIndex + limit;
+      const paginatedPeople = filteredPeople.slice(startIndex, endIndex);
+
+      return {
+        people: paginatedPeople.map(person => ({
+          id: person._id,
+          name: `${person.userId.firstName} ${person.userId.lastName}`,
+          role: person.userId.role,
+          skills: person.skills || [],
+          isFollowing: person.isFollowing,
+          followers: person.followingApplicants ? person.followingApplicants.length : 0
+        })),
+        totalPages: Math.ceil(filteredPeople.length / limit),
+        currentPage: page,
+        totalPeople: filteredPeople.length
+      };
+    } catch (error) {
+      console.error('Failed to fetch people:', error);
+      throw error;
     }
-
-    // Apply role filter
-    if (filters.role) {
-      filteredPeople = filteredPeople.filter(person => 
-        person.role === filters.role
-      );
-    }
-
-    // Apply location filter
-    if (filters.location) {
-      filteredPeople = filteredPeople.filter(person => 
-        person.location === filters.location
-      );
-    }
-
-    // Apply company filter
-    if (filters.company) {
-      filteredPeople = filteredPeople.filter(person => 
-        person.company === filters.company
-      );
-    }
-
-    // Calculate pagination
-    const startIndex = (page - 1) * limit;
-    const endIndex = startIndex + limit;
-    const paginatedPeople = filteredPeople.slice(startIndex, endIndex);
-
-    return {
-      people: paginatedPeople,
-      totalPages: Math.ceil(filteredPeople.length / limit),
-      currentPage: page,
-      totalPeople: filteredPeople.length
-    };
   },
 
   // Get single person details
   getPersonById: async (id) => {
-    await delay(300);
-    const person = dummyPeople.find(p => p.id === id);
-    if (!person) throw new Error('Person not found');
-    return person;
+    try {
+      const currentUserId = authService.getUserId();
+      const response = await axios.get(`${API_BASE_URL}/applicants/${currentUserId}/allapplicants`);
+      const person = response.data.find(p => p._id === id);
+      
+      if (!person) throw new Error('Person not found');
+      
+      return {
+        id: person._id,
+        name: `${person.userId.firstName} ${person.userId.lastName}`,
+        role: person.userId.role,
+        skills: person.skills || [],
+        isFollowing: person.isFollowing,
+        followers: person.followingApplicants ? person.followingApplicants.length : 0,
+        connections: person.followingCompanies ? person.followingCompanies.length : 0,
+        bio: `${person.userId.firstName} ${person.userId.lastName} is a ${person.userId.role}`,
+        education: {
+          school: 'Not Available',
+          degree: 'Not Available',
+          year: 'Not Available'
+        }
+      };
+    } catch (error) {
+      console.error('Failed to fetch person details:', error);
+      throw error;
+    }
   },
 
   // Toggle follow person
-  toggleFollow: async (id) => {
-    await delay(200);
-    const person = dummyPeople.find(p => p.id === id);
-    if (!person) throw new Error('Person not found');
-    
-    person.isFollowing = !person.isFollowing;
-    if (person.isFollowing) {
-      person.followers += 1;
-    } else {
-      person.followers -= 1;
+  toggleFollow: async (id, isCurrentlyFollowing) => {
+    try {
+      const currentUserId = authService.getUserId();
+      let response;
+      
+      if (isCurrentlyFollowing) {
+        // Unfollow
+        response = await axios.post(`${API_BASE_URL}/applicants/${currentUserId}/unfollow/${id}`);
+      } else {
+        // Follow
+        response = await axios.post(`${API_BASE_URL}/applicants/${currentUserId}/follow/${id}`);
+      }
+      
+      // Update following status based on the action taken
+      return {
+        isFollowing: !isCurrentlyFollowing,
+        followers: response.data.applicant.followingApplicants ? response.data.applicant.followingApplicants.length : 0
+      };
+    } catch (error) {
+      console.error('Failed to toggle follow:', error);
+      throw error;
     }
-    
-    return {
-      isFollowing: person.isFollowing,
-      followers: person.followers
-    };
   },
 
   // Get filter options
   getFilterOptions: async () => {
-    await delay(200);
-    return {
-      roles: ['Software Engineer', 'Product Manager', 'UX Designer', 'Data Scientist', 'DevOps Engineer'],
-      locations: ['New York', 'San Francisco', 'London', 'Berlin', 'Tokyo'],
-      companies: Array.from(new Set(dummyPeople.map(p => p.company)))
-    };
-  },
-
-  // Check if current user is a recruiter
-  isRecruiter: async () => {
-    await delay(100);
-    // Simulate current user being a recruiter (for demo purposes)
-    return true;
-  },
-
-  // Get recruiter's company ID
-  getRecruiterCompanyId: async () => {
-    await delay(100);
-    // Simulate getting recruiter's company ID (for demo purposes)
-    return 1;
+    try {
+      const currentUserId = authService.getUserId();
+      const response = await axios.get(`${API_BASE_URL}/applicants/${currentUserId}/allapplicants`);
+      
+      const roles = [...new Set(response.data.map(p => p.userId.role))];
+      
+      return {
+        roles,
+        locations: [],
+        companies: []
+      };
+    } catch (error) {
+      console.error('Failed to fetch filter options:', error);
+      throw error;
+    }
   }
 };

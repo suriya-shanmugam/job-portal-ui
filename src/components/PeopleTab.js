@@ -6,7 +6,6 @@ import {
   CardContent,
   Typography,
   TextField,
-  Button,
   FormControl,
   InputLabel,
   Select,
@@ -16,13 +15,12 @@ import {
   Avatar,
   Chip,
   Paper,
-  InputAdornment
+  InputAdornment,
+  Button
 } from '@mui/material';
 import {
   Search as SearchIcon,
-  LocationOn as LocationIcon,
-  Business as BusinessIcon,
-  Work as WorkIcon
+  Person as PersonIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { peopleService } from '../services/peopleService';
@@ -35,14 +33,10 @@ const PeopleTab = () => {
   const [totalPages, setTotalPages] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState({
-    role: '',
-    location: '',
-    company: ''
+    role: ''
   });
   const [filterOptions, setFilterOptions] = useState({
-    roles: [],
-    locations: [],
-    companies: []
+    roles: []
   });
   const ITEMS_PER_PAGE = 6;
 
@@ -96,10 +90,10 @@ const PeopleTab = () => {
     setPage(1);
   };
 
-  const handleFollowToggle = async (personId, event) => {
+  const handleFollowToggle = async (personId, isFollowing, event) => {
     event.stopPropagation();
     try {
-      const result = await peopleService.toggleFollow(personId);
+      const result = await peopleService.toggleFollow(personId, isFollowing);
       setPeople(prev =>
         prev.map(person =>
           person.id === personId
@@ -133,7 +127,7 @@ const PeopleTab = () => {
       {/* Search and Filters */}
       <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
         <Grid container spacing={2}>
-          <Grid item xs={12} md={6}>
+          <Grid item xs={12} md={8}>
             <TextField
               fullWidth
               placeholder="Search people..."
@@ -147,7 +141,7 @@ const PeopleTab = () => {
               }}
             />
           </Grid>
-          <Grid item xs={12} md={2}>
+          <Grid item xs={12} md={4}>
             <FormControl fullWidth>
               <InputLabel>Role</InputLabel>
               <Select
@@ -159,40 +153,6 @@ const PeopleTab = () => {
                 {filterOptions.roles.map((role) => (
                   <MenuItem key={role} value={role}>
                     {role}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} md={2}>
-            <FormControl fullWidth>
-              <InputLabel>Location</InputLabel>
-              <Select
-                value={filters.location}
-                label="Location"
-                onChange={handleFilterChange('location')}
-              >
-                <MenuItem value="">All Locations</MenuItem>
-                {filterOptions.locations.map((location) => (
-                  <MenuItem key={location} value={location}>
-                    {location}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} md={2}>
-            <FormControl fullWidth>
-              <InputLabel>Company</InputLabel>
-              <Select
-                value={filters.company}
-                label="Company"
-                onChange={handleFilterChange('company')}
-              >
-                <MenuItem value="">All Companies</MenuItem>
-                {filterOptions.companies.map((company) => (
-                  <MenuItem key={company} value={company}>
-                    {company}
                   </MenuItem>
                 ))}
               </Select>
@@ -227,7 +187,7 @@ const PeopleTab = () => {
                       fontSize: '1.5rem'
                     }}
                   >
-                    {person.name.charAt(0)}
+                    <PersonIcon />
                   </Avatar>
                   <Box sx={{ ml: 2 }}>
                     <Typography variant="h6">
@@ -239,46 +199,27 @@ const PeopleTab = () => {
                   </Box>
                 </Box>
 
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                  <BusinessIcon sx={{ mr: 1, color: 'text.secondary' }} />
-                  <Typography variant="body2">
-                    {person.company}
-                  </Typography>
-                </Box>
-
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                  <LocationIcon sx={{ mr: 1, color: 'text.secondary' }} />
-                  <Typography variant="body2">
-                    {person.location}
-                  </Typography>
-                </Box>
-
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                  <WorkIcon sx={{ mr: 1, color: 'text.secondary' }} />
-                  <Typography variant="body2">
-                    {person.experience}
-                  </Typography>
-                </Box>
-
-                <Box sx={{ mb: 2 }}>
-                  {person.skills.map((skill, index) => (
-                    <Chip
-                      key={index}
-                      label={skill}
-                      size="small"
-                      sx={{ mr: 0.5, mb: 0.5 }}
-                    />
-                  ))}
-                </Box>
+                {person.skills && person.skills.length > 0 && (
+                  <Box sx={{ mb: 2 }}>
+                    {person.skills.map((skill, index) => (
+                      <Chip
+                        key={index}
+                        label={skill}
+                        size="small"
+                        sx={{ mr: 0.5, mb: 0.5 }}
+                      />
+                    ))}
+                  </Box>
+                )}
 
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 'auto' }}>
                   <Typography variant="body2" color="textSecondary">
-                    {person.followers.toLocaleString()} followers
+                    {person.followers} followers
                   </Typography>
                   <Button
                     variant={person.isFollowing ? "outlined" : "contained"}
                     size="small"
-                    onClick={(e) => handleFollowToggle(person.id, e)}
+                    onClick={(e) => handleFollowToggle(person.id, person.isFollowing, e)}
                   >
                     {person.isFollowing ? 'Following' : 'Follow'}
                   </Button>

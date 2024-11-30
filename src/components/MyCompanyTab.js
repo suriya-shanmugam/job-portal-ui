@@ -38,7 +38,7 @@ import {
   CalendarToday as CalendarIcon
 } from '@mui/icons-material';
 import { companyService } from '../services/companyService';
-import { peopleService } from '../services/peopleService';
+import { authService } from '../services/authService';
 
 const MyCompanyTab = () => {
   const [company, setCompany] = useState(null);
@@ -53,21 +53,29 @@ const MyCompanyTab = () => {
     title: '',
     type: 'Full-time',
     location: '',
-    salary: '',
+    salary: {
+      min: 0,
+      max: 0,
+      currency: 'USD'
+    },
     description: '',
-    requirements: ''
+    requirements: [],
+    department: ''
   });
+
   const JOBS_PER_PAGE = 5;
 
   const fetchCompanyDetails = useCallback(async () => {
     try {
       setLoading(true);
-      const recruiterCompanyId = await peopleService.getRecruiterCompanyId();
-      //Hard coding - Will change later
-      const data = await companyService.getCompanyById('67418bc7c9c3fd8d1d406a2d');
+      const companyId = authService.getCompanyId();
+      if (!companyId) {
+        throw new Error('No company ID found');
+      }
+      const data = await companyService.getCompanyById(companyId);
       setCompany(data);
     } catch (error) {
-      console.log(error)
+      console.error('Failed to fetch company details:', error);
       setError('Failed to fetch company details');
     } finally {
       setLoading(false);
@@ -78,8 +86,28 @@ const MyCompanyTab = () => {
     if (!company) return;
     try {
       const response = await companyService.getCompanyJobs(company.id, jobsPage, JOBS_PER_PAGE);
-      setJobs(response.jobs);
-      setTotalJobPages(response.totalPages);
+      console.log('API Response:', response); // Debug log
+      
+      if (response.status === 'success' && response.data) {
+        const formattedJobs = response.data.map(job => ({
+          id: job._id,
+          title: job.title,
+          type: job.type,
+          location: job.location,
+          department: job.department,
+          salary: job.salary,
+          description: job.description,
+          requirements: job.requirements,
+          posted: new Date(job.createdAt).toLocaleDateString(),
+          applicationsCount: job.applicationsCount
+        }));
+        console.log('Formatted Jobs:', formattedJobs); // Debug log
+        setJobs(formattedJobs);
+        // For now, we'll set total pages to 1 since pagination info isn't in the response
+        setTotalJobPages(1);
+      } else {
+        console.error('Invalid response format:', response);
+      }
     } catch (error) {
       console.error('Failed to fetch company jobs:', error);
     }
@@ -96,10 +124,29 @@ const MyCompanyTab = () => {
   }, [company, fetchCompanyJobs]);
 
   const handleJobFormChange = (field) => (event) => {
-    setJobForm(prev => ({
-      ...prev,
-      [field]: event.target.value
-    }));
+    const value = event.target.value;
+    if (field === 'requirements') {
+      // Split requirements by comma and trim whitespace
+      setJobForm(prev => ({
+        ...prev,
+        [field]: value.split(',').map(req => req.trim()).filter(req => req)
+      }));
+    } else if (field === 'salary.min' || field === 'salary.max') {
+      // Handle nested salary object
+      const [parent, child] = field.split('.');
+      setJobForm(prev => ({
+        ...prev,
+        [parent]: {
+          ...prev[parent],
+          [child]: parseInt(value) || 0
+        }
+      }));
+    } else {
+      setJobForm(prev => ({
+        ...prev,
+        [field]: value
+      }));
+    }
   };
 
   const handleOpenJobDialog = (job = null) => {
@@ -108,9 +155,10 @@ const MyCompanyTab = () => {
         title: job.title,
         type: job.type,
         location: job.location,
-        salary: job.salary,
+        salary: job.salary || { min: 0, max: 0, currency: 'USD' },
         description: job.description || '',
-        requirements: job.requirements || ''
+        requirements: job.requirements || [],
+        department: job.department || ''
       });
       setEditingJob(job);
     } else {
@@ -118,9 +166,10 @@ const MyCompanyTab = () => {
         title: '',
         type: 'Full-time',
         location: '',
-        salary: '',
+        salary: { min: 0, max: 0, currency: 'USD' },
         description: '',
-        requirements: ''
+        requirements: [],
+        department: ''
       });
       setEditingJob(null);
     }
@@ -134,12 +183,24 @@ const MyCompanyTab = () => {
 
   const handleSaveJob = async () => {
     try {
-      // In a real app, this would call an API to save the job
-      console.log('Saving job:', jobForm);
+      const companyId = authService.getCompanyId();
+      const userId = authService.getUserId();
+
+      if (!companyId || !userId) {
+        throw new Error('Authentication information missing');
+      }
+
+      const jobData = {
+        ...jobForm,
+        postedBy: userId
+      };
+
+      await companyService.createJob(companyId, jobData);
       handleCloseJobDialog();
       fetchCompanyJobs(); // Refresh jobs list
     } catch (error) {
       console.error('Failed to save job:', error);
+      setError('Failed to save job. Please try again.');
     }
   };
 
@@ -285,7 +346,7 @@ const MyCompanyTab = () => {
                         {job.type} • {job.location}
                       </Typography>
                       <Typography variant="body2" color="primary">
-                        {job.salary}
+                        ${job.salary.min.toLocaleString()} - ${job.salary.max.toLocaleString()} {job.salary.currency}
                       </Typography>
                       <Typography variant="caption" color="textSecondary">
                         Posted: {job.posted}
@@ -346,12 +407,30 @@ const MyCompanyTab = () => {
               required
             />
             <TextField
-              label="Salary Range"
-              value={jobForm.salary}
-              onChange={handleJobFormChange('salary')}
+              label="Department"
+              value={jobForm.department}
+              onChange={handleJobFormChange('department')}
               fullWidth
               required
             />
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <TextField
+                label="Minimum Salary"
+                type="number"
+                value={jobForm.salary.min}
+                onChange={handleJobFormChange('salary.min')}
+                fullWidth
+                required
+              />
+              <TextField
+                label="Maximum Salary"
+                type="number"
+                value={jobForm.salary.max}
+                onChange={handleJobFormChange('salary.max')}
+                fullWidth
+                required
+              />
+            </Box>
             <TextField
               label="Job Description"
               value={jobForm.description}
@@ -362,13 +441,14 @@ const MyCompanyTab = () => {
               required
             />
             <TextField
-              label="Requirements"
-              value={jobForm.requirements}
+              label="Requirements (comma-separated)"
+              value={jobForm.requirements.join(', ')}
               onChange={handleJobFormChange('requirements')}
               multiline
               rows={4}
               fullWidth
               required
+              helperText="Enter requirements separated by commas"
             />
           </Box>
         </DialogContent>
@@ -377,7 +457,7 @@ const MyCompanyTab = () => {
           <Button
             variant="contained"
             onClick={handleSaveJob}
-            disabled={!jobForm.title || !jobForm.location || !jobForm.salary}
+            disabled={!jobForm.title || !jobForm.location || !jobForm.salary.min || !jobForm.salary.max}
           >
             {editingJob ? 'Save Changes' : 'Post Job'}
           </Button>

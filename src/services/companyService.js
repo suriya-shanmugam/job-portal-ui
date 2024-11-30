@@ -26,9 +26,6 @@ function formatCompanyData(companies) {
   });
 }
 
-// Simulate API delay
-const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
 export const companyService = {
   // Get paginated companies with search and filters
   getCompanies: async (page = 1, limit = 10, search = "", filters = {}) => {
@@ -103,15 +100,54 @@ export const companyService = {
 
   // Get single company details
   getCompanyById: async (id) => {
-    const response = await companyService.getCompanies();
-    let companies = response.companies;
-    
-    const company = companies.find(comp => comp.id === id);
-    if (!company) {
-      throw new Error("Company not found");
+    try {
+      const response = await fetch(`http://localhost:3000/api/v1/companies/${id}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch company details");
+      }
+      
+      const company = await response.json();
+      // Transform the response to match the expected format
+      return {
+        id: company._id,
+        name: company.name,
+        description: company.description,
+        industry: company.industry,
+        location: company.location,
+        website: company.website,
+        followers: company.followers || 0,
+        openPositions: 0,
+        jobs: [],
+        logo: null,
+        size: company.size || 'N/A',
+        founded: company.founded || 'N/A'
+      };
+    } catch (error) {
+      console.error('Error fetching company details:', error);
+      throw error;
     }
-    
-    return company;
+  },
+
+  // Create new job
+  createJob: async (companyId, jobData) => {
+    try {
+      const response = await fetch(`http://localhost:3000/api/v1/companies/${companyId}/jobs`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(jobData)
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to create job");
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error creating job:', error);
+      throw error;
+    }
   },
 
   // Follow company
@@ -193,21 +229,17 @@ export const companyService = {
 
   // Get company jobs
   getCompanyJobs: async (companyId, page = 1, limit = 5) => {
-    const response = await companyService.getCompanies();
-    let companies = response.companies;
-    let company = companies.find((c) => c.id === companyId);
-    if (!company) throw new Error("Company not found");
+    try {
+      const response = await fetch(`http://localhost:3000/api/v1/companies/${companyId}/jobs?page=${page}&limit=${limit}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch company jobs");
+      }
 
-    const startIndex = (page - 1) * limit;
-    const endIndex = startIndex + limit;
-    const paginatedJobs = company.jobs.slice(startIndex, endIndex);
-
-    return {
-      jobs: paginatedJobs,
-      totalPages: Math.ceil(company.jobs.length / limit),
-      currentPage: page,
-      totalJobs: company.jobs.length,
-    };
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching company jobs:', error);
+      throw error;
+    }
   },
 
   // Get filter options
