@@ -40,11 +40,13 @@ export const companyService = {
         throw new Error("Network response was not ok");
       }
 
-      const companies = await response.json();
+      const responsejson = await response.json();
+      const companies = responsejson.data;
       const formattedCompanies = formatCompanyData(companies);
       let filteredCompanies = [...formattedCompanies];
 
       // Apply search
+      
       if (search) {
         const searchLower = search.toLowerCase();
         filteredCompanies = filteredCompanies.filter(

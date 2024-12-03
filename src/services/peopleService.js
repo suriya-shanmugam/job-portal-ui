@@ -10,7 +10,11 @@ export const peopleService = {
       const currentUserId = authService.getUserId();
       const response = await axios.get(`${API_BASE_URL}/applicants/${currentUserId}/allapplicants`);
       
-      let filteredPeople = [...response.data];
+      //const responsejson = await response.json();
+      //console.log(responsejson)
+      const people = response.data.data;
+      console.log(people)
+      let filteredPeople = [...people];
       
       // Apply search
       if (search) {
@@ -57,22 +61,28 @@ export const peopleService = {
   // Get single person details
   getPersonById: async (id) => {
     try {
-      const currentUserId = authService.getUserId();
-      const response = await axios.get(`${API_BASE_URL}/applicants/${currentUserId}/allapplicants`);
-      const person = response.data.find(p => p._id === id);
+      const response = await axios.get(`${API_BASE_URL}/applicants/${id}`);
       
+      // Ensure 'data' exists and is valid
+      const person = response.data.data;
       if (!person) throw new Error('Person not found');
+      
+      // Destructure user data safely
+      const userId = person.userId || {};
+      const firstName = userId.firstName || 'N/A';
+      const lastName = userId.lastName || 'N/A';
+      const role = userId.role || 'Unknown';
       
       return {
         id: person._id,
-        name: `${person.userId.firstName} ${person.userId.lastName}`,
-        role: person.userId.role,
+        name: `${firstName} ${lastName}`,
+        role: role,
         skills: person.skills || [],
         isFollowing: person.isFollowing,
-        followers: person.followingApplicants ? person.followingApplicants.length : 0,
-        connections: person.followingCompanies ? person.followingCompanies.length : 0,
-        bio: `${person.userId.firstName} ${person.userId.lastName} is a ${person.userId.role}`,
-        education: {
+        followers: Array.isArray(person.followingApplicants) ? person.followingApplicants.length : 0,
+        connections: Array.isArray(person.followingCompanies) ? person.followingCompanies.length : 0,
+        bio: `${firstName} ${lastName} is a ${role}`,
+        education: person.education || {
           school: 'Not Available',
           degree: 'Not Available',
           year: 'Not Available'
@@ -83,6 +93,7 @@ export const peopleService = {
       throw error;
     }
   },
+
 
   // Toggle follow person
   toggleFollow: async (id, isCurrentlyFollowing) => {
@@ -115,7 +126,9 @@ export const peopleService = {
       const currentUserId = authService.getUserId();
       const response = await axios.get(`${API_BASE_URL}/applicants/${currentUserId}/allapplicants`);
       
-      const roles = [...new Set(response.data.map(p => p.userId.role))];
+      //const responsejson = await response.json();
+      const applicants = response.data;
+      const roles = [...new Set(applicants.data.map(p => p.userId.role))];
       
       return {
         roles,

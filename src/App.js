@@ -112,7 +112,7 @@ function MainContent() {
                   Welcome, {user.firstName} {user.lastName}
                 </Typography>
               )}
-              <NotificationPanel />
+              {/* <NotificationPanel /> */}
               <Button color="inherit" onClick={handleSignOut}>
                 Sign Out
               </Button>

@@ -37,7 +37,7 @@ const PersonProfile = () => {
   const fetchPersonDetails = async () => {
     try {
       setLoading(true);
-      const data = await peopleService.getPersonById(Number(id));
+      const data = await peopleService.getPersonById(id);
       setPerson(data);
     } catch (error) {
       setError('Failed to fetch person details');
