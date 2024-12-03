@@ -42,14 +42,14 @@ import { peopleService } from "../services/peopleService";
 const CompanyProfile = () => {
   const { id } = useParams();
   const [company, setCompany] = useState(null);
-  const [jobs, setJobs] = useState([]);
+  //const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [jobsPage, setJobsPage] = useState(1);
-  const [totalJobPages, setTotalJobPages] = useState(0);
+  //const [totalJobPages, setTotalJobPages] = useState(0);
   const [isRecruiter, setIsRecruiter] = useState(false);
-  const [jobDialog, setJobDialog] = useState(false);
-  const [editingJob, setEditingJob] = useState(null);
+  //const [jobDialog, setJobDialog] = useState(false);
+  //const [editingJob, setEditingJob] = useState(null);
   const [jobForm, setJobForm] = useState({
     title: "",
     type: "Full-time",
@@ -59,7 +59,7 @@ const CompanyProfile = () => {
     requirements: "",
   });
   const JOBS_PER_PAGE = 5;
-
+  /*
   const checkRecruiterStatus = useCallback(async () => {
     try {
       const recruiterStatus = await peopleService.isRecruiter();
@@ -68,7 +68,7 @@ const CompanyProfile = () => {
     } catch (error) {
       console.error("Failed to check recruiter status:", error);
     }
-  }, [id]);
+  }, [id]); */
 
   const fetchCompanyDetails = useCallback(async () => {
     try {
@@ -92,8 +92,8 @@ const CompanyProfile = () => {
         jobsPage,
         JOBS_PER_PAGE
       );
-      setJobs(response.jobs);
-      setTotalJobPages(response.totalPages);
+      //setJobs(response.jobs);
+      //setTotalJobPages(response.totalPages);
     } catch (error) {
       console.error("Failed to fetch company jobs:", error);
     }
@@ -123,13 +123,15 @@ const CompanyProfile = () => {
     }
   };
 
+  /*
   const handleJobFormChange = (field) => (event) => {
     setJobForm((prev) => ({
       ...prev,
       [field]: event.target.value,
     }));
-  };
+  }; */
 
+  /*
   const handleOpenJobDialog = (job = null) => {
     if (job) {
       setJobForm({
@@ -158,9 +160,9 @@ const CompanyProfile = () => {
   const handleCloseJobDialog = () => {
     setJobDialog(false);
     setEditingJob(null);
-  };
+  }; */
 
-  const handleSaveJob = async () => {
+  /*const handleSaveJob = async () => {
     try {
       // In a real app, this would call an API to save the job
       console.log("Saving job:", jobForm);
@@ -173,7 +175,7 @@ const CompanyProfile = () => {
 
   const handlePageChange = (event, value) => {
     setJobsPage(value);
-  };
+  }; */
 
   if (loading) {
     return (

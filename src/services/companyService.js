@@ -1,4 +1,26 @@
+import axios from 'axios';
 import { authService } from './authService';
+
+const API_BASE_URL = 'http://localhost:3000/api/v1';
+
+// Create axios instance with default config
+const api = axios.create({
+  baseURL: API_BASE_URL,
+});
+
+// Add request interceptor to include auth token
+api.interceptors.request.use(
+  (config) => {
+    const token = authService.getToken();
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
 
 const keyMapping = {
   _id: "id",
@@ -35,18 +57,12 @@ export const companyService = {
         throw new Error("User not authenticated");
       }
 
-      const response = await fetch(`http://localhost:3000/api/v1/applicants/${userId}/companies`);
-      if (!response.ok) {
-        throw new Error("Network response was not ok");
-      }
-
-      const responsejson = await response.json();
-      const companies = responsejson.data;
+      const response = await api.get(`/applicants/${userId}/companies`);
+      const companies = response.data.data;
       const formattedCompanies = formatCompanyData(companies);
       let filteredCompanies = [...formattedCompanies];
 
       // Apply search
-      
       if (search) {
         const searchLower = search.toLowerCase();
         filteredCompanies = filteredCompanies.filter(
@@ -57,21 +73,19 @@ export const companyService = {
         );
       }
 
-      // Apply industry filter
+      // Apply filters
       if (filters.industry) {
         filteredCompanies = filteredCompanies.filter(
           (company) => company.industry === filters.industry
         );
       }
 
-      // Apply location filter
       if (filters.location) {
         filteredCompanies = filteredCompanies.filter(
           (company) => company.location === filters.location
         );
       }
 
-      // Apply size filter
       if (filters.size) {
         filteredCompanies = filteredCompanies.filter(
           (company) => company.size === filters.size
@@ -91,24 +105,16 @@ export const companyService = {
       };
     } catch (err) {
       console.error('Error fetching companies:', err);
-      return {
-        companies: [],
-        totalPages: 0,
-        currentPage: 0,
-        totalCompanies: 0,
-      };
+      throw err;
     }
   },
 
   // Get single company details
   getCompanyById: async (id) => {
     try {
-      const response = await fetch(`http://localhost:3000/api/v1/companies/${id}`);
-      if (!response.ok) {
-        throw new Error("Failed to fetch company details");
-      }
+      const response = await api.get(`/companies/${id}`);
+      const company = response.data;
       
-      const company = await response.json();
       // Transform the response to match the expected format
       return {
         id: company._id,
@@ -122,7 +128,8 @@ export const companyService = {
         jobs: [],
         logo: null,
         size: company.size || 'N/A',
-        founded: company.founded || 'N/A'
+        founded: company.founded || 'N/A',
+        isFollowing: company.isFollowing || false
       };
     } catch (error) {
       console.error('Error fetching company details:', error);
@@ -133,19 +140,8 @@ export const companyService = {
   // Create new job
   createJob: async (companyId, jobData) => {
     try {
-      const response = await fetch(`http://localhost:3000/api/v1/companies/${companyId}/jobs`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(jobData)
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to create job");
-      }
-
-      return await response.json();
+      const response = await api.post(`/companies/${companyId}/jobs`, jobData);
+      return response.data;
     } catch (error) {
       console.error('Error creating job:', error);
       throw error;
@@ -159,21 +155,15 @@ export const companyService = {
       throw new Error("User not authenticated");
     }
 
-    const response = await fetch(`http://localhost:3000/api/v1/companies/${companyId}/follow`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
+    try {
+      const response = await api.post(`/companies/${companyId}/follow`, {
         applicantId: userId
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error("Failed to follow company");
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error following company:', error);
+      throw error;
     }
-
-    return await response.json();
   },
 
   // Unfollow company
@@ -183,21 +173,15 @@ export const companyService = {
       throw new Error("User not authenticated");
     }
 
-    const response = await fetch(`http://localhost:3000/api/v1/companies/${companyId}/unfollow`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
+    try {
+      const response = await api.post(`/companies/${companyId}/unfollow`, {
         applicantId: userId
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error("Failed to unfollow company");
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error unfollowing company:', error);
+      throw error;
     }
-
-    return await response.json();
   },
 
   // Toggle follow company
@@ -232,12 +216,10 @@ export const companyService = {
   // Get company jobs
   getCompanyJobs: async (companyId, page = 1, limit = 5) => {
     try {
-      const response = await fetch(`http://localhost:3000/api/v1/companies/${companyId}/jobs?page=${page}&limit=${limit}`);
-      if (!response.ok) {
-        throw new Error("Failed to fetch company jobs");
-      }
-
-      return await response.json();
+      const response = await api.get(`/companies/${companyId}/jobs`, {
+        params: { page, limit }
+      });
+      return response.data;
     } catch (error) {
       console.error('Error fetching company jobs:', error);
       throw error;
