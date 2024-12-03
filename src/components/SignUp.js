@@ -18,6 +18,7 @@ import {
 } from '@mui/material';
 import { useNavigate, Link } from 'react-router-dom';
 import { authService } from '../services/authService';
+import { usePushNotificationService } from '../services/pushNotifyService'; // Import the hook
 
 const SignUp = () => {
   const navigate = useNavigate();
@@ -37,6 +38,7 @@ const SignUp = () => {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const { subscribeUser } = usePushNotificationService();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -84,6 +86,20 @@ const SignUp = () => {
       setError('Failed to sign up. Please try again.');
     } finally {
       setLoading(false);
+      try {
+        // Trigger the subscribeUser function with the user's data
+        const user = authService.getCurrentUser();
+        
+        /*let user = {};
+        user.id="123";
+        user.firstname="hello";
+        user.email="test.com";*/
+        console.log(user);
+        subscribeUser(user.id,user.firstName,user.email);
+        console.log("subscribe triggered")
+      } catch (error) {
+        console.error("Subscription failed:", error);
+      }
     }
   };
 
