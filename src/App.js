@@ -50,6 +50,11 @@ function MainContent() {
     if (currentUser) {
       setUser(currentUser);
       setIsRecruiter(currentUser.role === 'Recruiter');
+      
+      // Redirect to appropriate initial route based on role
+      if (location.pathname === '/') {
+        navigate(currentUser.role === 'Recruiter' ? '/people' : '/feeds');
+      }
     }
   }, []);
 
@@ -62,7 +67,6 @@ function MainContent() {
   const getTabs = () => {
     if (isRecruiter) {
       return [
-        { label: 'Feeds', path: '/feeds' },
         { label: 'People', path: '/people' },
         { label: 'Company', path: '/companies' },
         { label: 'MyCompany', path: '/mycompany' }
@@ -71,7 +75,7 @@ function MainContent() {
     return [
       { label: 'Feeds', path: '/feeds' },
       { label: 'Companies', path: '/companies' },
-      { label: 'Jobs', path: '/' },
+      { label: 'Jobs', path: '/jobs' },
       { label: 'People', path: '/people' },
       { label: 'Profile', path: '/profile' }
     ];
@@ -143,18 +147,28 @@ function MainContent() {
               path="/"
               element={
                 <ProtectedRoute>
-                  <JobsTab />
+                  {isRecruiter ? <Navigate to="/people" /> : <Navigate to="/feeds" />}
                 </ProtectedRoute>
               }
             />
             <Route
-              path="/feeds"
+              path="/jobs"
               element={
                 <ProtectedRoute>
-                  <FeedsTab />
+                  <JobsTab />
                 </ProtectedRoute>
               }
             />
+            {!isRecruiter && (
+              <Route
+                path="/feeds"
+                element={
+                  <ProtectedRoute>
+                    <FeedsTab />
+                  </ProtectedRoute>
+                }
+              />
+            )}
             <Route
               path="/companies"
               element={
