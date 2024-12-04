@@ -14,7 +14,8 @@ import {
   CircularProgress,
   Collapse,
   Divider,
-  Stack
+  Stack,
+  Chip
 } from '@mui/material';
 import {
   ThumbUp as ThumbUpIcon,
@@ -57,7 +58,7 @@ const FeedsTab = () => {
     
     try {
       setSubmitting(true);
-      await feedService.createPost(newPostContent, newPostTitle);
+      await feedService.createPost(newPostTitle, newPostContent);
       setNewPostTitle('');
       setNewPostContent('');
       // Refresh feeds
@@ -181,13 +182,25 @@ const FeedsTab = () => {
                 {post.content}
               </Typography>
 
+              {/* Tags */}
+              <Box sx={{ mb: 2 }}>
+                {post.tags && post.tags.map((tag, index) => (
+                  <Chip
+                    key={index}
+                    label={tag}
+                    size="small"
+                    sx={{ mr: 1, mb: 1 }}
+                  />
+                ))}
+              </Box>
+
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.secondary' }}>
                 <Typography variant="body2">
                   {post.likes} likes
                 </Typography>
                 •
                 <Typography variant="body2">
-                  {post.comments.length} comments
+                  {post.comments} comments
                 </Typography>
               </Box>
             </CardContent>
@@ -231,32 +244,6 @@ const FeedsTab = () => {
                     <SendIcon />
                   </IconButton>
                 </Box>
-
-                {/* Comments List */}
-                <Stack spacing={2}>
-                  {post.comments.map((comment) => (
-                    <Box key={comment.id}>
-                      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
-                        <Avatar sx={{ width: 32, height: 32 }}>
-                          {comment.author.name[0]}
-                        </Avatar>
-                        <Box sx={{ flex: 1 }}>
-                          <Box sx={{ bgcolor: '#f5f5f5', p: 1, borderRadius: 1 }}>
-                            <Typography variant="subtitle2">
-                              {comment.author.name}
-                            </Typography>
-                            <Typography variant="body2">
-                              {comment.content}
-                            </Typography>
-                          </Box>
-                          <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
-                            {formatDate(comment.timestamp)}
-                          </Typography>
-                        </Box>
-                      </Box>
-                    </Box>
-                  ))}
-                </Stack>
               </Box>
             </Collapse>
           </Card>

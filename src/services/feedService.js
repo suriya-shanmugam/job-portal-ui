@@ -1,12 +1,14 @@
 import axios from 'axios';
+import { authService } from './authService';
 
 const API_BASE_URL = 'http://localhost:3000/api/v1/applicants';
+const BLOG_API_BASE_URL = 'http://localhost:3000/api/v1/blogs';
+const CONVO_API_BASE_URL = 'http://localhost:3000/api/v1/conversations';
 
 // Helper function to get applicant ID from localStorage or another source
 const getApplicantId = () => {
-  // TODO: Replace with actual implementation to get applicant ID
-  return "674a3d368f2ad6ef7520f733"
-  //return localStorage.getItem('applicantId') || '';
+  const applicantId = authService.getUserId();
+  return applicantId;
 };
 
 export const feedService = {
@@ -26,23 +28,13 @@ export const feedService = {
           content: feed.content,
           timestamp: feed.createdAt,
           author: {
-            id: feed.userRef._id,
-            name: feed.userRef.name,
-            description: feed.userRef.description,
-            industry: feed.userRef.industry,
-            location: feed.userRef.location
+            id: feed.authorId._id,
+            name: feed.authorId.name,
+            type: feed.authorType
           },
-          likes: feed.likes.length,
-          comments: feed.comments.map(comment => ({
-            id: comment._id,
-            content: comment.content,
-            timestamp: comment.createdAt,
-            author: {
-              id: comment.userRef,
-              name: comment.createdByType, // Using createdByType as name for now
-              avatar: null
-            }
-          }))
+          tags: feed.tags,
+          likes: feed.likesCount,
+          comments: feed.commentsCount
         })),
         totalPages: Math.ceil(data.length / limit),
         currentPage: page,
@@ -55,12 +47,15 @@ export const feedService = {
   },
 
   // Create new post
-  createPost: async (content, title) => {
+  createPost: async (title, content, tags = ["career", "job", "developer"]) => {
     try {
       const applicantId = getApplicantId();
-      const response = await axios.post(`${API_BASE_URL}/${applicantId}/feeds`, {
+      const response = await axios.post(BLOG_API_BASE_URL, {
         title,
-        content
+        content,
+        authorType: "Applicant",
+        authorId: applicantId,
+        tags
       });
 
       const { data } = response.data;
@@ -70,12 +65,13 @@ export const feedService = {
         content: data.content,
         timestamp: data.createdAt,
         author: {
-          id: data.userRef._id,
-          name: data.userRef.name,
-          avatar: null
+          id: data.authorId._id,
+          name: data.authorId.name,
+          type: data.authorType
         },
-        likes: [],
-        comments: []
+        tags: data.tags,
+        likes: data.likesCount,
+        comments: data.commentsCount
       };
     } catch (error) {
       console.error('Error creating post:', error);
@@ -112,7 +108,7 @@ export const feedService = {
   toggleLike: async (postId) => {
     try {
       const applicantId = getApplicantId();
-      const response = await axios.post(`${API_BASE_URL}/${applicantId}/feeds/${postId}/like`);
+      const response = await axios.post(`${CONVO_API_BASE_URL}/${postId}/like`);
       const { data } = response.data;
       return data.likes.length;
     } catch (error) {
