@@ -13,16 +13,16 @@ const getApplicantId = () => {
 
 export const feedService = {
   // Get paginated feeds
-  getFeeds: async (page = 1, limit = 5) => {
+  getFeeds: async (cursor = null, limit = 5) => {
     try {
       const applicantId = getApplicantId();
       const response = await axios.get(`${API_BASE_URL}/${applicantId}/feeds`, {
-        params: { page, limit }
+        params: { cursor, limit }
       });
 
       const { data } = response.data;
       return {
-        feeds: data.map(feed => ({
+        feeds: data.blogs.map(feed => ({
           id: feed._id,
           title: feed.title,
           content: feed.content,
@@ -34,11 +34,10 @@ export const feedService = {
           },
           tags: feed.tags,
           likes: feed.likesCount,
-          comments: feed.commentsCount
+          comments: feed.commentsCount,
+          likedByUser: feed.likedByUser
         })),
-        totalPages: Math.ceil(data.length / limit),
-        currentPage: page,
-        totalFeeds: data.length
+        nextCursor: data.nextCursor
       };
     } catch (error) {
       console.error('Error fetching feeds:', error);
@@ -71,7 +70,8 @@ export const feedService = {
         },
         tags: data.tags,
         likes: data.likesCount,
-        comments: data.commentsCount
+        comments: data.commentsCount,
+        likedByUser: data.likedByUser
       };
     } catch (error) {
       console.error('Error creating post:', error);
@@ -110,7 +110,10 @@ export const feedService = {
       const applicantId = getApplicantId();
       const response = await axios.post(`${CONVO_API_BASE_URL}/${postId}/like`);
       const { data } = response.data;
-      return data.likes.length;
+      return {
+        likesCount: data.likes.length,
+        likedByUser: data.likedByUser
+      };
     } catch (error) {
       console.error('Error toggling like:', error);
       throw error;

@@ -10,7 +10,6 @@ import {
   CardActions,
   Avatar,
   IconButton,
-  Pagination,
   CircularProgress,
   Collapse,
   Divider,
@@ -27,29 +26,43 @@ import { feedService } from '../services/feedService';
 const FeedsTab = () => {
   const [feeds, setFeeds] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(0);
+  const [nextCursor, setNextCursor] = useState(null);
   const [newPostTitle, setNewPostTitle] = useState('');
   const [newPostContent, setNewPostContent] = useState('');
   const [expandedComments, setExpandedComments] = useState({});
   const [commentInputs, setCommentInputs] = useState({});
   const [submitting, setSubmitting] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const ITEMS_PER_PAGE = 5;
 
   useEffect(() => {
     fetchFeeds();
-  }, [page]);
+  }, []);
 
-  const fetchFeeds = async () => {
+  const fetchFeeds = async (cursor = null) => {
     try {
-      setLoading(true);
-      const response = await feedService.getFeeds(page, ITEMS_PER_PAGE);
-      setFeeds(response.feeds);
-      setTotalPages(response.totalPages);
+      setLoading(cursor === null);
+      setLoadingMore(cursor !== null);
+      const response = await feedService.getFeeds(cursor, ITEMS_PER_PAGE);
+      
+      if (cursor === null) {
+        setFeeds(response.feeds);
+      } else {
+        setFeeds(prev => [...prev, ...response.feeds]);
+      }
+      
+      setNextCursor(response.nextCursor);
     } catch (error) {
       console.error('Failed to fetch feeds:', error);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
+    }
+  };
+
+  const handleLoadMore = () => {
+    if (nextCursor) {
+      fetchFeeds(nextCursor);
     }
   };
 
@@ -62,7 +75,6 @@ const FeedsTab = () => {
       setNewPostTitle('');
       setNewPostContent('');
       // Refresh feeds
-      setPage(1);
       fetchFeeds();
     } catch (error) {
       console.error('Failed to create post:', error);
@@ -73,8 +85,18 @@ const FeedsTab = () => {
 
   const handleLike = async (postId) => {
     try {
-      await feedService.toggleLike(postId);
-      fetchFeeds();
+      const response = await feedService.toggleLike(postId);
+      // Update the likes count and liked status in the local state
+      setFeeds(prev => prev.map(feed => {
+        if (feed.id === postId) {
+          return {
+            ...feed,
+            likes: response.likesCount,
+            likedByUser: response.likedByUser
+          };
+        }
+        return feed;
+      }));
     } catch (error) {
       console.error('Failed to like post:', error);
     }
@@ -114,7 +136,7 @@ const FeedsTab = () => {
     });
   };
 
-  if (loading && page === 1) {
+  if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
         <CircularProgress />
@@ -209,14 +231,20 @@ const FeedsTab = () => {
               <Button
                 startIcon={<ThumbUpIcon />}
                 onClick={() => handleLike(post.id)}
-                color="primary"
+                color={post.likedByUser ? "primary" : "inherit"}
+                sx={{ 
+                  color: post.likedByUser ? 'primary.main' : 'inherit',
+                  '&:hover': {
+                    color: post.likedByUser ? 'primary.dark' : 'inherit'
+                  }
+                }}
               >
                 Like
               </Button>
               <Button
                 startIcon={<CommentIcon />}
                 onClick={() => toggleComments(post.id)}
-                color="primary"
+                color="inherit"
               >
                 Comment
               </Button>
@@ -250,15 +278,18 @@ const FeedsTab = () => {
         ))}
       </Stack>
 
-      {/* Pagination */}
-      <Box display="flex" justifyContent="center" mt={3}>
-        <Pagination
-          count={totalPages}
-          page={page}
-          onChange={(e, value) => setPage(value)}
-          color="primary"
-        />
-      </Box>
+      {/* Load More Button */}
+      {nextCursor && (
+        <Box display="flex" justifyContent="center" mt={3}>
+          <Button
+            variant="outlined"
+            onClick={handleLoadMore}
+            disabled={loadingMore}
+          >
+            {loadingMore ? <CircularProgress size={24} /> : 'Load More'}
+          </Button>
+        </Box>
+      )}
     </Box>
   );
 };
