@@ -33,6 +33,8 @@ const FeedsTab = () => {
   const [commentInputs, setCommentInputs] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [comments, setComments] = useState({});
+  const [loadingComments, setLoadingComments] = useState({});
   const ITEMS_PER_PAGE = 5;
 
   useEffect(() => {
@@ -57,6 +59,18 @@ const FeedsTab = () => {
     } finally {
       setLoading(false);
       setLoadingMore(false);
+    }
+  };
+
+  const fetchComments = async (postId) => {
+    try {
+      setLoadingComments(prev => ({ ...prev, [postId]: true }));
+      const comments = await feedService.getComments(postId);
+      setComments(prev => ({ ...prev, [postId]: comments }));
+    } catch (error) {
+      console.error('Failed to fetch comments:', error);
+    } finally {
+      setLoadingComments(prev => ({ ...prev, [postId]: false }));
     }
   };
 
@@ -110,6 +124,9 @@ const FeedsTab = () => {
       setSubmitting(true);
       await feedService.addComment(postId, comment);
       setCommentInputs(prev => ({ ...prev, [postId]: '' }));
+      // Refresh comments for this post
+      fetchComments(postId);
+      // Refresh feeds to update comment count
       fetchFeeds();
     } catch (error) {
       console.error('Failed to add comment:', error);
@@ -118,11 +135,16 @@ const FeedsTab = () => {
     }
   };
 
-  const toggleComments = (postId) => {
+  const toggleComments = async (postId) => {
+    const newExpandedState = !expandedComments[postId];
     setExpandedComments(prev => ({
       ...prev,
-      [postId]: !prev[postId]
+      [postId]: newExpandedState
     }));
+    
+    if (newExpandedState && (!comments[postId] || comments[postId].length === 0)) {
+      fetchComments(postId);
+    }
   };
 
   const formatDate = (dateString) => {
@@ -267,11 +289,43 @@ const FeedsTab = () => {
                   />
                   <IconButton
                     onClick={() => handleComment(post.id)}
-                    disabled={!commentInputs[post.id]?.trim()}
+                    disabled={!commentInputs[post.id]?.trim() || submitting}
                   >
                     <SendIcon />
                   </IconButton>
                 </Box>
+
+                {/* Comments List */}
+                {loadingComments[post.id] ? (
+                  <Box display="flex" justifyContent="center" p={2}>
+                    <CircularProgress size={24} />
+                  </Box>
+                ) : (
+                  <Stack spacing={2}>
+                    {comments[post.id]?.map((comment) => (
+                      <Box key={comment.id}>
+                        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+                          <Avatar sx={{ width: 32, height: 32 }}>
+                            {comment.author.name?.[0] || '?'}
+                          </Avatar>
+                          <Box sx={{ flex: 1 }}>
+                            <Box sx={{ bgcolor: '#f5f5f5', p: 1, borderRadius: 1 }}>
+                              <Typography variant="subtitle2">
+                                {comment.author.name}
+                              </Typography>
+                              <Typography variant="body2">
+                                {comment.content}
+                              </Typography>
+                            </Box>
+                            <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+                              {formatDate(comment.timestamp)}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      </Box>
+                    ))}
+                  </Stack>
+                )}
               </Box>
             </Collapse>
           </Card>

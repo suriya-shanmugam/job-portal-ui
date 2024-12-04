@@ -3,7 +3,6 @@ import { authService } from './authService';
 
 const API_BASE_URL = 'http://localhost:3000/api/v1/applicants';
 const BLOG_API_BASE_URL = 'http://localhost:3000/api/v1/blogs';
-const CONVO_API_BASE_URL = 'http://localhost:3000/api/v1/conversations';
 
 // Helper function to get applicant ID from localStorage or another source
 const getApplicantId = () => {
@@ -79,11 +78,34 @@ export const feedService = {
     }
   },
 
+  // Get comments for a blog
+  getComments: async (blogId) => {
+    try {
+      const response = await axios.get(`${BLOG_API_BASE_URL}/${blogId}/comments`);
+      const { data } = response.data;
+      return data.map(comment => ({
+        id: comment._id,
+        content: comment.content,
+        timestamp: comment.createdAt,
+        author: {
+          id: comment.authorId._id,
+          name: comment.authorId.name,
+          type: comment.authorType
+        }
+      }));
+    } catch (error) {
+      console.error('Error fetching comments:', error);
+      throw error;
+    }
+  },
+
   // Add comment to post
-  addComment: async (postId, content) => {
+  addComment: async (blogId, content) => {
     try {
       const applicantId = getApplicantId();
-      const response = await axios.post(`${API_BASE_URL}/${applicantId}/feeds/${postId}/comments`, {
+      const response = await axios.post(`${BLOG_API_BASE_URL}/${blogId}/comment`, {
+        authorType: "Applicant",
+        authorId: applicantId,
         content
       });
 
@@ -93,9 +115,8 @@ export const feedService = {
         content: data.content,
         timestamp: data.createdAt,
         author: {
-          id: data.userRef,
-          name: data.createdByType,
-          avatar: null
+          id: data.authorId,
+          type: data.authorType
         }
       };
     } catch (error) {
@@ -105,14 +126,21 @@ export const feedService = {
   },
 
   // Toggle like on post
-  toggleLike: async (postId) => {
+  toggleLike: async (blogId) => {
     try {
       const applicantId = getApplicantId();
-      const response = await axios.post(`${CONVO_API_BASE_URL}/${postId}/like`);
-      const { data } = response.data;
+      const response = await axios.post(`${BLOG_API_BASE_URL}/${blogId}/like`, {
+        authorType: "Applicant",
+        authorId: applicantId
+      });
+
+      // After successful like, fetch the updated blog to get the new like status
+      const updatedBlogResponse = await axios.get(`${BLOG_API_BASE_URL}/${blogId}`);
+      const updatedBlog = updatedBlogResponse.data.data;
+
       return {
-        likesCount: data.likes.length,
-        likedByUser: data.likedByUser
+        likesCount: updatedBlog.likesCount,
+        likedByUser: updatedBlog.likedByUser
       };
     } catch (error) {
       console.error('Error toggling like:', error);
