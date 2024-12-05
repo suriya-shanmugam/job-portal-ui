@@ -140,7 +140,7 @@ export const companyService = {
   // Create new job
   createJob: async (companyId, jobData) => {
     try {
-      const response = await api.post(`/companies/${companyId}/jobs`, jobData);
+      const response = await api.post(`/companies/${companyId}/job`, jobData);
       return response.data;
     } catch (error) {
       console.error('Error creating job:', error);

@@ -24,11 +24,10 @@ import {
   IconButton,
   Link,
   Divider,
-  Card,
-  CardContent,
-  Pagination,
+  Stack,
+  Tabs,
   Tab,
-  Tabs
+  Pagination
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -38,6 +37,7 @@ import {
   People as PeopleIcon,
   Language as WebsiteIcon,
   CalendarToday as CalendarIcon,
+  Cancel as CancelIcon,
   Article as BlogIcon
 } from '@mui/icons-material';
 import { companyService } from '../services/companyService';
@@ -59,6 +59,7 @@ const MyCompanyTab = () => {
   const [blogDialog, setBlogDialog] = useState(false);
   const [editingJob, setEditingJob] = useState(null);
   const [editingBlog, setEditingBlog] = useState(null);
+  const [newRequirement, setNewRequirement] = useState('');
 
   const [jobForm, setJobForm] = useState({
     title: '',
@@ -71,7 +72,8 @@ const MyCompanyTab = () => {
     },
     description: '',
     requirements: [],
-    department: ''
+    department: '',
+    jobLink: ''
   });
 
   const [blogForm, setBlogForm] = useState({
@@ -113,11 +115,12 @@ const MyCompanyTab = () => {
           salary: job.salary,
           description: job.description,
           requirements: job.requirements,
+          jobLink: job.jobLink,
           posted: new Date(job.createdAt).toLocaleDateString(),
           applicationsCount: job.applicationsCount
         }));
         setJobs(formattedJobs);
-        setTotalJobPages(1);
+        setTotalJobPages(Math.ceil(response.total / ITEMS_PER_PAGE));
       }
     } catch (error) {
       console.error('Failed to fetch company jobs:', error);
@@ -153,18 +156,13 @@ const MyCompanyTab = () => {
 
   const handleJobFormChange = (field) => (event) => {
     const value = event.target.value;
-    if (field === 'requirements') {
-      setJobForm(prev => ({
-        ...prev,
-        [field]: value.split(',').map(req => req.trim()).filter(req => req)
-      }));
-    } else if (field === 'salary.min' || field === 'salary.max') {
+    if (field.includes('salary.')) {
       const [parent, child] = field.split('.');
       setJobForm(prev => ({
         ...prev,
         [parent]: {
           ...prev[parent],
-          [child]: parseInt(value) || 0
+          [child]: child === 'currency' ? value : (parseInt(value) || 0)
         }
       }));
     } else {
@@ -173,6 +171,23 @@ const MyCompanyTab = () => {
         [field]: value
       }));
     }
+  };
+
+  const handleAddRequirement = (event) => {
+    if (event.key === 'Enter' && newRequirement.trim()) {
+      setJobForm(prev => ({
+        ...prev,
+        requirements: [...prev.requirements, newRequirement.trim()]
+      }));
+      setNewRequirement('');
+    }
+  };
+
+  const handleDeleteRequirement = (index) => {
+    setJobForm(prev => ({
+      ...prev,
+      requirements: prev.requirements.filter((_, i) => i !== index)
+    }));
   };
 
   const handleBlogFormChange = (field) => (event) => {
@@ -199,7 +214,8 @@ const MyCompanyTab = () => {
         salary: job.salary || { min: 0, max: 0, currency: 'USD' },
         description: job.description || '',
         requirements: job.requirements || [],
-        department: job.department || ''
+        department: job.department || '',
+        jobLink: job.jobLink || ''
       });
       setEditingJob(job);
     } else {
@@ -210,7 +226,8 @@ const MyCompanyTab = () => {
         salary: { min: 0, max: 0, currency: 'USD' },
         description: '',
         requirements: [],
-        department: ''
+        department: '',
+        jobLink: ''
       });
       setEditingJob(null);
     }
@@ -239,6 +256,7 @@ const MyCompanyTab = () => {
   const handleCloseJobDialog = () => {
     setJobDialog(false);
     setEditingJob(null);
+    setNewRequirement('');
   };
 
   const handleCloseBlogDialog = () => {
@@ -256,11 +274,22 @@ const MyCompanyTab = () => {
       }
 
       const jobData = {
-        ...jobForm,
-        postedBy: userId
+        postedBy: userId,
+        title: jobForm.title,
+        description: jobForm.description,
+        requirements: jobForm.requirements,
+        location: jobForm.location,
+        salary: jobForm.salary,
+        department: jobForm.department,
+        type: jobForm.type,
+        jobLink: jobForm.jobLink
       };
 
-      await companyService.createJob(companyId, jobData);
+      if (editingJob) {
+        await companyService.updateJob(companyId, editingJob.id, jobData);
+      } else {
+        await companyService.createJob(companyId, jobData);
+      }
       handleCloseJobDialog();
       fetchCompanyJobs();
     } catch (error) {
@@ -286,10 +315,12 @@ const MyCompanyTab = () => {
 
   const handleDeleteJob = async (jobId) => {
     try {
-      console.log('Deleting job:', jobId);
+      const companyId = authService.getCompanyId();
+      await companyService.deleteJob(companyId, jobId);
       fetchCompanyJobs();
     } catch (error) {
       console.error('Failed to delete job:', error);
+      setError('Failed to delete job. Please try again.');
     }
   };
 
@@ -299,6 +330,7 @@ const MyCompanyTab = () => {
       fetchCompanyBlogs();
     } catch (error) {
       console.error('Failed to delete blog:', error);
+      setError('Failed to delete blog. Please try again.');
     }
   };
 
@@ -334,7 +366,6 @@ const MyCompanyTab = () => {
 
   return (
     <Box sx={{ p: 3 }}>
-      {/* Company Header */}
       <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
         <Grid container spacing={3}>
           <Grid item xs={12} md={8}>
@@ -388,17 +419,16 @@ const MyCompanyTab = () => {
                 Company Stats
               </Typography>
               <Typography variant="body1">
-                {company.followers.toLocaleString()} followers
+                {company.followers?.toLocaleString() || 0} followers
               </Typography>
               <Typography variant="body1">
-                {company.openPositions} open positions
+                {jobs.length} open positions
               </Typography>
             </Box>
           </Grid>
         </Grid>
       </Paper>
 
-      {/* Tabs */}
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
         <Tabs value={activeTab} onChange={handleTabChange}>
           <Tab label="Job Listings" />
@@ -406,7 +436,6 @@ const MyCompanyTab = () => {
         </Tabs>
       </Box>
 
-      {/* Job Management */}
       {activeTab === 0 && (
         <Paper elevation={3} sx={{ p: 3 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
@@ -448,14 +477,26 @@ const MyCompanyTab = () => {
                     secondary={
                       <Box sx={{ mt: 1 }}>
                         <Typography variant="body2" paragraph>
-                          {job.type} • {job.location}
+                          {job.type} • {job.location} • {job.department}
                         </Typography>
                         <Typography variant="body2" color="primary">
-                          ${job.salary.min.toLocaleString()} - ${job.salary.max.toLocaleString()} {job.salary.currency}
+                          {job.salary.min.toLocaleString()} - {job.salary.max.toLocaleString()} {job.salary.currency}
                         </Typography>
-                        <Typography variant="caption" color="textSecondary">
-                          Posted: {job.posted}
-                        </Typography>
+                        <Box sx={{ mt: 1, mb: 1 }}>
+                          <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
+                            {job.requirements.map((req, index) => (
+                              <Chip key={index} label={req} size="small" />
+                            ))}
+                          </Stack>
+                        </Box>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1 }}>
+                          <Link href={job.jobLink} target="_blank" rel="noopener">
+                            Apply Now
+                          </Link>
+                          <Typography variant="caption" color="textSecondary">
+                            Posted: {job.posted} • {job.applicationsCount} applications
+                          </Typography>
+                        </Box>
                       </Box>
                     }
                   />
@@ -478,7 +519,6 @@ const MyCompanyTab = () => {
         </Paper>
       )}
 
-      {/* Blog Management */}
       {activeTab === 1 && (
         <Paper elevation={3} sx={{ p: 3 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
@@ -552,7 +592,6 @@ const MyCompanyTab = () => {
         </Paper>
       )}
 
-      {/* Job Dialog */}
       <Dialog open={jobDialog} onClose={handleCloseJobDialog} maxWidth="md" fullWidth>
         <DialogTitle>
           {editingJob ? 'Edit Job' : 'Post New Job'}
@@ -577,6 +616,7 @@ const MyCompanyTab = () => {
                 <MenuItem value="Part-time">Part-time</MenuItem>
                 <MenuItem value="Contract">Contract</MenuItem>
                 <MenuItem value="Remote">Remote</MenuItem>
+                <MenuItem value="Internship">Internship</MenuItem>
               </Select>
             </FormControl>
             <TextField
@@ -610,7 +650,28 @@ const MyCompanyTab = () => {
                 fullWidth
                 required
               />
+              <FormControl sx={{ minWidth: 120 }}>
+                <InputLabel>Currency</InputLabel>
+                <Select
+                  value={jobForm.salary.currency}
+                  onChange={handleJobFormChange('salary.currency')}
+                  label="Currency"
+                >
+                  <MenuItem value="USD">USD</MenuItem>
+                  <MenuItem value="EUR">EUR</MenuItem>
+                  <MenuItem value="GBP">GBP</MenuItem>
+                  <MenuItem value="INR">INR</MenuItem>
+                </Select>
+              </FormControl>
             </Box>
+            <TextField
+              label="Job Link"
+              value={jobForm.jobLink}
+              onChange={handleJobFormChange('jobLink')}
+              fullWidth
+              required
+              placeholder="https://example.com/apply"
+            />
             <TextField
               label="Job Description"
               value={jobForm.description}
@@ -620,16 +681,26 @@ const MyCompanyTab = () => {
               fullWidth
               required
             />
-            <TextField
-              label="Requirements (comma-separated)"
-              value={jobForm.requirements.join(', ')}
-              onChange={handleJobFormChange('requirements')}
-              multiline
-              rows={4}
-              fullWidth
-              required
-              helperText="Enter requirements separated by commas"
-            />
+            <Box>
+              <TextField
+                label="Add Requirement"
+                value={newRequirement}
+                onChange={(e) => setNewRequirement(e.target.value)}
+                onKeyPress={handleAddRequirement}
+                fullWidth
+                helperText="Press Enter to add a requirement"
+              />
+              <Stack direction="row" spacing={1} sx={{ mt: 2, flexWrap: 'wrap', gap: 1 }}>
+                {jobForm.requirements.map((req, index) => (
+                  <Chip
+                    key={index}
+                    label={req}
+                    onDelete={() => handleDeleteRequirement(index)}
+                    deleteIcon={<CancelIcon />}
+                  />
+                ))}
+              </Stack>
+            </Box>
           </Box>
         </DialogContent>
         <DialogActions>
@@ -637,14 +708,21 @@ const MyCompanyTab = () => {
           <Button
             variant="contained"
             onClick={handleSaveJob}
-            disabled={!jobForm.title || !jobForm.location || !jobForm.salary.min || !jobForm.salary.max}
+            disabled={
+              !jobForm.title ||
+              !jobForm.location ||
+              !jobForm.salary.min ||
+              !jobForm.salary.max ||
+              !jobForm.jobLink ||
+              !jobForm.description ||
+              jobForm.requirements.length === 0
+            }
           >
             {editingJob ? 'Save Changes' : 'Post Job'}
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Blog Dialog */}
       <Dialog open={blogDialog} onClose={handleCloseBlogDialog} maxWidth="md" fullWidth>
         <DialogTitle>
           {editingBlog ? 'Edit Blog Post' : 'Create New Blog Post'}
