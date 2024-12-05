@@ -27,5 +27,10 @@ jobs:
       - name: Build Docker image
         run: |
           docker build -t suriyashanmugam/job-portal-ui:latest .
+          docker tag suriyashanmugam/job-portal-ui:latest suriyashanmugam/job-portal-ui:${GITHUB_SHA}
 
       # Step 5: 
+      - name: Push Docker image
+        run: |
+          docker push suriyashanmugam/job-portal-ui:latest
+          docker push suriyashanmugam/job-portal-ui:${GITHUB_SHA}
