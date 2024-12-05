@@ -1,0 +1,26 @@
+services:
+  job-portal-ui:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: job-portal-ui
+    ports:
+      - "3001:80"
+    #environment:
+      #- NODE_ENV=production
+      #- REACT_APP_API_URL=http://localhost:5000/api/v1
+      #- REACT_APP_API2_URL=http://localhost:5001/api/v1
+      #- REACT_APP_VAPID_PUBLIC_KEY=""
+    networks:
+      - job-portal-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  job-portal-network:
+    name: job-portal-network
+    driver: bridge

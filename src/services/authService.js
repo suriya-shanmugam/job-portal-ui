@@ -1,11 +1,12 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:3000/api/v1';
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000/api/v1';
+//const API_BASE_URL = 'http://localhost:3000/api/v1';
 
 export const authService = {
   signIn: async (email, password) => {
     try {
-      const response = await axios.post(`${API_BASE_URL}/auth/signin`, {
+      const response = await axios.post(`${API_URL}/auth/signin`, {
         email,
         password
       });
@@ -63,7 +64,7 @@ export const authService = {
         };
       }
 
-      const response = await axios.post(`${API_BASE_URL}/users`, payload);
+      const response = await axios.post(`${API_URL}/users`, payload);
       const { user, token } = response.data;
 
       // Store token, user info, and user ID

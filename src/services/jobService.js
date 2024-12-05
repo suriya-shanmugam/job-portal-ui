@@ -1,9 +1,10 @@
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000/api/v1';
 // Service methods
 export const jobService = {
   // Get paginated jobs
   getJobs: async (page = 1, limit = 10, filters = {}) => {
     try {
-      const response = await fetch("http://localhost:3000/api/v1/jobs");
+      const response = await fetch(`${API_URL}/jobs`);
       if (!response.ok) {
         throw new Error("Network response was not ok");
       }
@@ -75,7 +76,7 @@ export const jobService = {
   // Get single job details
   getJobById: async (id) => {
     try {
-      const response = await fetch(`http://localhost:3000/api/v1/jobs/${id}`);
+      const response = await fetch(`${API_URL}/jobs/${id}`);
       if (!response.ok) {
         throw new Error("Network response was not ok");
       }
@@ -94,7 +95,7 @@ export const jobService = {
   analyzeJob: async (jobId, applicantId) => {
     try {
       const response = await fetch(
-        `http://localhost:3000/api/v1/jobs/${jobId}/analyze?applicantId=${applicantId}`
+        `${API_URL}/jobs/${jobId}/analyze?applicantId=${applicantId}`
       );
       if (!response.ok) {
         throw new Error("Network response was not ok");

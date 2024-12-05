@@ -1,41 +1,104 @@
-# Getting Started with Create React App
+# Job Portal UI
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A React-based job portal user interface with job listing, analysis, and application features.
 
-## Available Scripts
+## Prerequisites
 
-In the project directory, you can run:
+- Docker
+- Docker Compose
 
-### `npm start`
+## Installation and Running with Docker
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+1. First, ensure Docker is installed and running on your system:
+   ```bash
+   # For Ubuntu/Debian
+   sudo systemctl start docker
+   
+   # For macOS/Windows
+   # Start Docker Desktop
+   ```
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+2. Clone the repository:
+   ```bash
+   git clone <repository-url>
+   cd job-portal-ui
+   ```
 
-### `npm test`
+3. Build and run the Docker container:
+   ```bash
+   docker-compose build
+   docker-compose up -d
+   ```
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+4. Access the application:
+   - Open your browser and navigate to `http://localhost:3001`
+   - The API should be running on `http://localhost:3000`
 
-### `npm run build`
+## Docker Commands
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+- Start the application:
+  ```bash
+  docker-compose up -d
+  ```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+- Stop the application:
+  ```bash
+  docker-compose down
+  ```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+- View logs:
+  ```bash
+  docker-compose logs -f job-portal-ui
+  ```
 
-### `npm run eject`
+- Rebuild the container:
+  ```bash
+  docker-compose build --no-cache
+  ```
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+## Troubleshooting
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+1. If Docker daemon is not running:
+   ```bash
+   # For Ubuntu/Debian
+   sudo systemctl start docker
+   
+   # Check status
+   sudo systemctl status docker
+   ```
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+2. If port 3001 is already in use:
+   - Modify the port mapping in `docker-compose.yml`
+   - Change `"3001:80"` to another port like `"3002:80"`
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+3. If API connection fails:
+   - Ensure the backend API is running on `http://localhost:3000`
+   - Check the `REACT_APP_API_URL` environment variable in `docker-compose.yml`
 
+## Development
+
+For local development without Docker:
+
+1. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+2. Start development server:
+   ```bash
+   npm start
+   ```
+
+## Project Structure
+
+```
+job-portal-ui/
+├── src/
+│   ├── components/     # React components
+│   ├── services/       # API services
+│   └── App.js         # Main application component
+├── public/            # Static files
+├── Dockerfile         # Docker configuration
+├── docker-compose.yml # Docker Compose configuration
+├── nginx.conf         # Nginx configuration for production
+└── .dockerignore      # Docker ignore file

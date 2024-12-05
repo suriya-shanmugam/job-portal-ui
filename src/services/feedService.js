@@ -1,8 +1,9 @@
 import axios from 'axios';
 import { authService } from './authService';
 
-const API_BASE_URL = 'http://localhost:3000/api/v1/applicants';
-const BLOG_API_BASE_URL = 'http://localhost:3000/api/v1/blogs';
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000/api/v1';
+//const API_BASE_URL = 'http://localhost:3000/api/v1/applicants';
+//const BLOG_API_BASE_URL = 'http://localhost:3000/api/v1/blogs';
 
 // Helper function to get applicant ID from localStorage or another source
 const getApplicantId = () => {
@@ -15,7 +16,7 @@ export const feedService = {
   getFeeds: async (cursor = null, limit = 5) => {
     try {
       const applicantId = getApplicantId();
-      const response = await axios.get(`${API_BASE_URL}/${applicantId}/feeds`, {
+      const response = await axios.get(`${API_URL}/applicants/${applicantId}/feeds`, {
         params: { cursor, limit }
       });
 
@@ -48,7 +49,7 @@ export const feedService = {
   createPost: async (title, content, tags = ["career", "job", "developer"]) => {
     try {
       const applicantId = getApplicantId();
-      const response = await axios.post(BLOG_API_BASE_URL, {
+      const response = await axios.post(`${API_URL}/blogs`, {
         title,
         content,
         authorType: "Applicant",
@@ -81,7 +82,7 @@ export const feedService = {
   // Get comments for a blog
   getComments: async (blogId) => {
     try {
-      const response = await axios.get(`${BLOG_API_BASE_URL}/${blogId}/comments`);
+      const response = await axios.get(`${API_URL}/blogs/${blogId}/comments`);
       const { data } = response.data;
       return data.map(comment => ({
         id: comment._id,
@@ -103,7 +104,7 @@ export const feedService = {
   addComment: async (blogId, content) => {
     try {
       const applicantId = getApplicantId();
-      const response = await axios.post(`${BLOG_API_BASE_URL}/${blogId}/comment`, {
+      const response = await axios.post(`${API_URL}/blogs/${blogId}/comment`, {
         authorType: "Applicant",
         authorId: applicantId,
         content
@@ -129,13 +130,13 @@ export const feedService = {
   toggleLike: async (blogId) => {
     try {
       const applicantId = getApplicantId();
-      const response = await axios.post(`${BLOG_API_BASE_URL}/${blogId}/like`, {
+      const response = await axios.post(`${API_URL}/blogs/${blogId}/like`, {
         authorType: "Applicant",
         authorId: applicantId
       });
 
       // After successful like, fetch the updated blog to get the new like status
-      const updatedBlogResponse = await axios.get(`${BLOG_API_BASE_URL}/${blogId}`);
+      const updatedBlogResponse = await axios.get(`${API_URL}/blogs/${blogId}?applicantId=${applicantId}`);
       const updatedBlog = updatedBlogResponse.data.data;
 
       return {
@@ -154,7 +155,7 @@ export const notificationService = {
   getNotifications: async (page = 1, limit = 10) => {
     try {
       const applicantId = getApplicantId();
-      const response = await axios.get(`${API_BASE_URL}/${applicantId}/notifications`, {
+      const response = await axios.get(`${API_URL}/applicants/${applicantId}/notifications`, {
         params: { page, limit }
       });
 
@@ -186,7 +187,7 @@ export const notificationService = {
   markAsRead: async (notificationId) => {
     try {
       const applicantId = getApplicantId();
-      const response = await axios.patch(`${API_BASE_URL}/${applicantId}/notifications/${notificationId}/read`);
+      const response = await axios.patch(`${API_URL}/applicants/${applicantId}/notifications/${notificationId}/read`);
       return response.data.data;
     } catch (error) {
       console.error('Error marking notification as read:', error);
@@ -198,7 +199,7 @@ export const notificationService = {
   markAllAsRead: async () => {
     try {
       const applicantId = getApplicantId();
-      const response = await axios.patch(`${API_BASE_URL}/${applicantId}/notifications/read-all`);
+      const response = await axios.patch(`${API_URL}/applicants/${applicantId}/notifications/read-all`);
       return response.data.success;
     } catch (error) {
       console.error('Error marking all notifications as read:', error);

@@ -1,14 +1,16 @@
 import axios from 'axios';
 import { authService } from './authService';
 
-const API_BASE_URL = 'http://localhost:3000/api/v1';
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000/api/v1';
+
+//const API_BASE_URL = 'http://localhost:3000/api/v1';
 
 export const peopleService = {
   // Get paginated people with search and filters
   getPeople: async (page = 1, limit = 10, search = '', filters = {}) => {
     try {
       const currentUserId = authService.getUserId();
-      const response = await axios.get(`${API_BASE_URL}/applicants/${currentUserId}/allapplicants`);
+      const response = await axios.get(`${API_URL}/applicants/${currentUserId}/allapplicants`);
       
       //const responsejson = await response.json();
       //console.log(responsejson)
@@ -61,7 +63,7 @@ export const peopleService = {
   // Get single person details
   getPersonById: async (id) => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/applicants/${id}`);
+      const response = await axios.get(`${API_URL}/applicants/${id}`);
       
       // Ensure 'data' exists and is valid
       const person = response.data.data;
@@ -103,10 +105,10 @@ export const peopleService = {
       
       if (isCurrentlyFollowing) {
         // Unfollow
-        response = await axios.post(`${API_BASE_URL}/applicants/${currentUserId}/unfollow/${id}`);
+        response = await axios.post(`${API_URL}/applicants/${currentUserId}/unfollow/${id}`);
       } else {
         // Follow
-        response = await axios.post(`${API_BASE_URL}/applicants/${currentUserId}/follow/${id}`);
+        response = await axios.post(`${API_URL}/applicants/${currentUserId}/follow/${id}`);
       }
       
       // Update following status based on the action taken
@@ -124,7 +126,7 @@ export const peopleService = {
   getFilterOptions: async () => {
     try {
       const currentUserId = authService.getUserId();
-      const response = await axios.get(`${API_BASE_URL}/applicants/${currentUserId}/allapplicants`);
+      const response = await axios.get(`${API_URL}/applicants/${currentUserId}/allapplicants`);
       
       //const responsejson = await response.json();
       const applicants = response.data;

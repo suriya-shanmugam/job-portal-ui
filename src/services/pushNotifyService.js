@@ -1,8 +1,11 @@
 import { useState } from "react";
 import axios from "axios";
 
-const VAPID_PUBLIC_KEY =
-  "BGWNHwBlYOAdOHlSx7HjEmRUAFcF7Wp4Vj2sl9z2ge9XElwPdiz9XTg81yF-s2Q2iO6fimv3TU4HS88J_oJNsbY"; // Replace with actual VAPID key
+
+const API2_URL = process.env.REACT_APP_API2_URL || 'http://localhost:3000/api';
+
+const VAPID_PUBLIC_KEY = process.env.REACT_APP_VAPID_PUBLIC_KEY || 'BGWNHwBlYOAdOHlSx7HjEmRUAFcF7Wp4Vj2sl9z2ge9XElwPdiz9XTg81yF-s2Q2iO6fimv3TU4HS88J_oJNsbY'; //BGWNHwBlYOAdOHlSx7HjEmRUAFcF7Wp4Vj2sl9z2ge9XElwPdiz9XTg81yF-s2Q2iO6fimv3TU4HS88J_oJNsbY
+
 
 export const usePushNotificationService = () => {
   const [isSubscribed, setIsSubscribed] = useState(false);
@@ -72,7 +75,7 @@ export const usePushNotificationService = () => {
       };
 
       // Send the subscription details to the backend API to register the device
-      const response = await axios.post("http://localhost:5000/api/user/add", {
+      const response = await axios.post(`${API2_URL}/user/add`, {
         "userData":{userID,
         username,
         email},
