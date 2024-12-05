@@ -23,7 +23,7 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      # Step 4: Build the Docker image
+      # Step 4: Build the Docker image m
       - name: Build Docker image
         run: |
           docker build -t suriyashanmugam/job-portal-ui:latest .
