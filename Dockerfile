@@ -11,9 +11,9 @@ COPY package*.json ./
 RUN npm install
 
 # Set environment variables here
-ENV REACT_APP_API_URL=http://localhost:5000/api/v1
-ENV REACT_APP_API2_URL=http://localhost:5001/api/v1
-ENV REACT_APP_VAPID_PUBLIC_KEY="BGWNHwBlYOAdOHlSx7HjEmRUAFcF7Wp4Vj2sl9z2ge9XElwPdiz9XTg81yF-s2Q2iO6fimv3TU4HS88J_oJNsbY"
+ENV REACT_APP_API_URL=http://localhost:3000/api/v1
+ENV REACT_APP_API2_URL=http://localhost:5001/api
+ENV REACT_APP_VAPID_PUBLIC_KEY=""
 
 # Copy source code
 COPY . .
