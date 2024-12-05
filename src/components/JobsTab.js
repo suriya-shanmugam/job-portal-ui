@@ -8,10 +8,28 @@ import {
   CardContent,
   Stack,
   Alert,
-  Button
+  Button,
+  Modal,
+  Chip
 } from '@mui/material';
 import { jobService } from '../services/jobService';
+import { authService } from '../services/authService';
 import LaunchIcon from '@mui/icons-material/Launch';
+import AnalyticsIcon from '@mui/icons-material/Analytics';
+
+const modalStyle = {
+  position: 'absolute',
+  top: '50%',
+  left: '50%',
+  transform: 'translate(-50%, -50%)',
+  width: 400,
+  bgcolor: 'background.paper',
+  boxShadow: 24,
+  p: 4,
+  borderRadius: 2,
+  maxHeight: '80vh',
+  overflow: 'auto'
+};
 
 const JobsTab = () => {
   const [jobs, setJobs] = useState([]);
@@ -19,6 +37,9 @@ const JobsTab = () => {
   const [error, setError] = useState(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
+  const [analysisData, setAnalysisData] = useState(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [analyzingJobs, setAnalyzingJobs] = useState(new Set());
   const ITEMS_PER_PAGE = 5;
 
   useEffect(() => {
@@ -58,6 +79,44 @@ const JobsTab = () => {
       return;
     }
     window.open(jobLink, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleAnalyze = async (jobId) => {
+    try {
+      if (!authService.isAuthenticated()) {
+        setError('Please sign in to analyze job matches');
+        return;
+      }
+
+      const userId = authService.getUserId();
+      if (!userId) {
+        setError('User ID not found. Please sign in again.');
+        return;
+      }
+
+      setAnalyzingJobs(prev => new Set([...prev, jobId]));
+      const analysis = await jobService.analyzeJob(jobId, userId);
+      if (analysis) {
+        setAnalysisData(analysis);
+        setModalOpen(true);
+      } else {
+        throw new Error('Failed to get analysis data');
+      }
+    } catch (err) {
+      console.error('Error analyzing job:', err);
+      setError('Failed to analyze job. Please try again later.');
+    } finally {
+      setAnalyzingJobs(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(jobId);
+        return newSet;
+      });
+    }
+  };
+
+  const handleCloseModal = () => {
+    setModalOpen(false);
+    setAnalysisData(null);
   };
 
   if (loading) {
@@ -115,7 +174,16 @@ const JobsTab = () => {
                   </ul>
                 </>
               )}
-              <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
+              <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+                <Button
+                  variant="outlined"
+                  color="primary"
+                  startIcon={<AnalyticsIcon />}
+                  onClick={() => handleAnalyze(job._id)}
+                  disabled={analyzingJobs.has(job._id) || !authService.isAuthenticated()}
+                >
+                  {analyzingJobs.has(job._id) ? 'Analyzing...' : 'Analyze'}
+                </Button>
                 <Button
                   variant="contained"
                   color="primary"
@@ -130,6 +198,58 @@ const JobsTab = () => {
           </Card>
         ))}
       </Stack>
+
+      <Modal
+        open={modalOpen}
+        onClose={handleCloseModal}
+        aria-labelledby="analysis-modal-title"
+      >
+        <Box sx={modalStyle}>
+          <Typography id="analysis-modal-title" variant="h6" component="h2" gutterBottom>
+            Skills Analysis Report
+          </Typography>
+          {analysisData && (
+            <Box>
+              <Typography variant="subtitle1" sx={{ mt: 2, mb: 1 }}>
+                Hard Skills
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
+                {analysisData.HardSkills.map((skill, index) => (
+                  <Chip
+                    key={index}
+                    label={skill}
+                    color={analysisData.MatchedSkills.includes(skill) ? "success" : "default"}
+                    variant={analysisData.MatchedSkills.includes(skill) ? "filled" : "outlined"}
+                  />
+                ))}
+              </Box>
+
+              <Typography variant="subtitle1" sx={{ mt: 2, mb: 1 }}>
+                Soft Skills
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                {analysisData.SoftSkills.map((skill, index) => (
+                  <Chip
+                    key={index}
+                    label={skill}
+                    color={analysisData.MatchedSkills.includes(skill) ? "success" : "default"}
+                    variant={analysisData.MatchedSkills.includes(skill) ? "filled" : "outlined"}
+                  />
+                ))}
+              </Box>
+
+              <Box sx={{ mt: 3 }}>
+                <Typography variant="body2" color="text.secondary">
+                  Matched skills are highlighted in green
+                </Typography>
+              </Box>
+            </Box>
+          )}
+          <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>
+            <Button onClick={handleCloseModal}>Close</Button>
+          </Box>
+        </Box>
+      </Modal>
 
       {jobs.length > 0 && (
         <Box display="flex" justifyContent="center" mt={3}>

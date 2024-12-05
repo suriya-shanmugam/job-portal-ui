@@ -90,6 +90,26 @@ export const jobService = {
     }
   },
 
+  // Analyze job skills for an applicant
+  analyzeJob: async (jobId, applicantId) => {
+    try {
+      const response = await fetch(
+        `http://localhost:3000/api/v1/jobs/${jobId}/analyze?applicantId=${applicantId}`
+      );
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
+      const result = await response.json();
+      if (result.status !== "success" || !result.data) {
+        throw new Error("Invalid response format");
+      }
+      return JSON.parse(result.data)[0]; // Parse the stringified data and get first element
+    } catch (error) {
+      console.error("Error analyzing job:", error);
+      return null;
+    }
+  },
+
   // Get job types for filters
   getJobTypes: async () => {
     return ["Full-time", "Part-time", "Contract", "Remote"];
