@@ -3,16 +3,13 @@ name: Docker Image CI
 on:
   push:
     branches: [ "master" ]
- 
 
 jobs:
-
   build:
-
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
+      - name: Checkout repository
         uses: actions/checkout@v3
 
       # Step 2: Set up Docker Buildx
@@ -30,8 +27,5 @@ jobs:
       - name: Build Docker image
         run: |
           docker build -t suriyashanmugam/job-portal-ui:latest .
-      
-      # Step 5: Push the Docker image to Docker Hub
-      - name: Push Docker image
-        run: |
-          docker push suriyashanmugam/job-portal-ui:latest
+
+      # Step 5: 
