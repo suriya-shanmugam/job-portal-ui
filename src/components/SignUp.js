@@ -108,7 +108,7 @@ const SignUp = () => {
       
       if (result.success) {
         // Token and user info are already stored by authService
-        navigate('/');
+        navigate('/home');
       } else {
         setError(result.error);
       }
@@ -127,7 +127,6 @@ const SignUp = () => {
         console.log(user);
         subscribeUser(user.id,user.firstName,user.email);
         console.log("subscribe triggered");
-        navigate('/jobs');
       } catch (error) {
         console.error("Subscription failed:", error);
       }
