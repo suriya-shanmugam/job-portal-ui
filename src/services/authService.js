@@ -98,6 +98,23 @@ export const authService = {
     localStorage.removeItem('companyId'); // Remove companyId on sign out
   },
 
+  checkIfUserExists: async (email) => {
+    try {
+      const response = await axios.get(`${API_URL}/users/user/${email}`);
+      return {
+        success: true,
+        userExists: response.data.userExists,
+        user: response.data.user
+      };
+    } catch (error) {
+      console.error('Check user existence error:', error);
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Failed to check user existence'
+      };
+    }
+  },
+
   getCurrentUser: () => {
     const userStr = localStorage.getItem('user');
     return userStr ? JSON.parse(userStr) : null;

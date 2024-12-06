@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Box,
   Container,
@@ -19,13 +19,12 @@ import {
 import { useNavigate, Link } from 'react-router-dom';
 import { authService } from '../services/authService';
 import { usePushNotificationService } from '../services/pushNotifyService'; // Import the hook
+import { useAuth0 } from '@auth0/auth0-react';
 
 const SignUp = () => {
+  const { user, getAccessTokenSilently } = useAuth0();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    confirmPassword: '',
     firstName: '',
     lastName: '',
     role: 'Applicant',
@@ -37,8 +36,40 @@ const SignUp = () => {
     companyWebsite: ''
   });
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const { subscribeUser } = usePushNotificationService();
+
+  useEffect(() => {
+    const checkUserExists = async () => { 
+
+      const token = await getAccessTokenSilently();
+      if (user !== undefined && token !== undefined)
+        setFormData(prev => (
+        {
+          ...prev,
+          email: user.email
+        }
+        ));
+      try {
+        console.log('Checking if user exists:', user.email);
+        const response = await authService.checkIfUserExists(user.email);
+        console.log('User exists:', response.userExists);
+        if (response.userExists) {
+          console.log('User already exists');
+          navigate('/jobs');
+          localStorage.setItem('token', token);
+          localStorage.setItem('email', response.user.email);
+          localStorage.setItem('role', response.user.role);
+          localStorage.setItem('firstName', response.user.firstName);
+          localStorage.setItem('lastName', response.user.lastName);
+        }
+      } catch (error) {
+        console.error('Error checking user existence:', error);
+      }
+      setLoading(false);
+    }
+    checkUserExists();
+  }, [user]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -50,13 +81,8 @@ const SignUp = () => {
 
   const validateForm = () => {
     // Required fields for all users
-    if (!formData.email || !formData.password || !formData.firstName || !formData.lastName) {
+    if (!formData.firstName || !formData.lastName) {
       setError('Please fill in all required fields');
-      return false;
-    }
-
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
       return false;
     }
 
@@ -102,6 +128,22 @@ const SignUp = () => {
       }
     }
   };
+  if (loading) {
+    return (
+      <Container component="main" maxWidth="sm">
+        <Box
+          sx={{
+            marginTop: 8,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+          }}
+        >
+          <CircularProgress />
+        </Box>
+      </Container>
+    );
+  }
 
   return (
     <Container component="main" maxWidth="sm">
@@ -149,39 +191,6 @@ const SignUp = () => {
             <Typography variant="h6" gutterBottom>
               Required Information
             </Typography>
-
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              label="Email Address"
-              name="email"
-              autoComplete="email"
-              value={formData.email}
-              onChange={handleChange}
-            />
-
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              name="password"
-              label="Password"
-              type="password"
-              value={formData.password}
-              onChange={handleChange}
-            />
-
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              name="confirmPassword"
-              label="Confirm Password"
-              type="password"
-              value={formData.confirmPassword}
-              onChange={handleChange}
-            />
 
             <TextField
               margin="normal"
@@ -271,14 +280,6 @@ const SignUp = () => {
             >
               {loading ? <CircularProgress size={24} /> : 'Sign Up'}
             </Button>
-
-            <Box sx={{ textAlign: 'center' }}>
-              <Link to="/signin" style={{ textDecoration: 'none' }}>
-                <Typography color="primary">
-                  Already have an account? Sign In
-                </Typography>
-              </Link>
-            </Box>
           </form>
         </Paper>
       </Box>

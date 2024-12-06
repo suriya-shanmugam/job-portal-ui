@@ -10,7 +10,6 @@ import {
   Button
 } from '@mui/material';
 import { 
-  BrowserRouter as Router,
   Routes,
   Route,
   useNavigate,
@@ -29,14 +28,12 @@ import MyCompanyTab from './components/MyCompanyTab';
 import NotificationPanel from './components/NotificationPanel';
 import SignIn from './components/SignIn';
 import SignUp from './components/SignUp';
+import Authentication from './components/Authentication';
+import { ProtectedRoute } from './components/AuthenticationGuard';
 import { authService } from './services/authService';
+import { useAuth0 } from '@auth0/auth0-react';
 import './App.css';
 
-// Protected Route component
-const ProtectedRoute = ({ children }) => {
-  const isAuthenticated = authService.isAuthenticated();
-  return isAuthenticated ? children : <Navigate to="/signin" />;
-};
 
 function MainContent() {
   const navigate = useNavigate();
@@ -44,6 +41,7 @@ function MainContent() {
   const [currentTab, setCurrentTab] = useState(0);
   const [isRecruiter, setIsRecruiter] = useState(false);
   const [user, setUser] = useState(null);
+  const { logout } = useAuth0();
 
   useEffect(() => {
     const currentUser = authService.getCurrentUser();
@@ -59,8 +57,11 @@ function MainContent() {
   }, []);
 
   const handleSignOut = () => {
-    authService.signOut();
-    navigate('/signin');
+    logout({
+      logoutParams: {
+          returnTo: 'http://localhost:3001/',
+      },
+    });
   };
 
   // Get tabs based on user role
@@ -100,6 +101,8 @@ function MainContent() {
 
   if (location.pathname === '/signin' || location.pathname === '/signup') {
     return location.pathname === '/signin' ? <SignIn /> : <SignUp />;
+  } else if (location.pathname === '/') {
+    return <Authentication />;
   }
 
   return (
@@ -141,73 +144,64 @@ function MainContent() {
 
         <Box sx={{ p: 2 }}>
           <Routes>
-            <Route path="/signin" element={<SignIn />} />
-            <Route path="/signup" element={<SignUp />} />
             <Route
               path="/"
               element={
-                <ProtectedRoute>
-                  {isRecruiter ? <Navigate to="/people" /> : <Navigate to="/feeds" />}
-                </ProtectedRoute>
+                <Authentication/>
+              }
+            />
+            <Route path="/signup" element={<ProtectedRoute component={SignUp}/>} />
+            <Route
+              path="/home"
+              element={
+                <>
+                  {isRecruiter ? <ProtectedRoute component={PeopleTab}/> : <ProtectedRoute component={FeedsTab}/>}
+                </>
               }
             />
             <Route
               path="/jobs"
               element={
-                <ProtectedRoute>
-                  <JobsTab />
-                </ProtectedRoute>
+                <ProtectedRoute component={JobsTab}/>
               }
             />
             {!isRecruiter && (
               <Route
                 path="/feeds"
                 element={
-                  <ProtectedRoute>
-                    <FeedsTab />
-                  </ProtectedRoute>
+                  <ProtectedRoute component={FeedsTab}/>
                 }
               />
             )}
             <Route
               path="/companies"
               element={
-                <ProtectedRoute>
-                  <CompaniesTab />
-                </ProtectedRoute>
+                <ProtectedRoute component={CompaniesTab}/>
               }
             />
             <Route
               path="/company/:id"
               element={
-                <ProtectedRoute>
-                  <CompanyProfile />
-                </ProtectedRoute>
+                <ProtectedRoute component={CompanyProfile}/>
               }
             />
             <Route
               path="/people"
               element={
-                <ProtectedRoute>
-                  <PeopleTab />
-                </ProtectedRoute>
+                <ProtectedRoute component={PeopleTab}/>
               }
             />
             <Route
               path="/person/:id"
               element={
-                <ProtectedRoute>
-                  <PersonProfile />
-                </ProtectedRoute>
+                <ProtectedRoute component={PersonProfile}/>
               }
             />
             {!isRecruiter && (
               <Route
                 path="/profile"
                 element={
-                  <ProtectedRoute>
-                    <ProfileTab />
-                  </ProtectedRoute>
+                  <ProtectedRoute component={ProfileTab}/>
                 }
               />
             )}
@@ -215,9 +209,7 @@ function MainContent() {
               <Route
                 path="/mycompany"
                 element={
-                  <ProtectedRoute>
-                    <MyCompanyTab />
-                  </ProtectedRoute>
+                  <ProtectedRoute component={MyCompanyTab}/>
                 }
               />
             )}
@@ -230,9 +222,7 @@ function MainContent() {
 
 function App() {
   return (
-    <Router>
-      <MainContent />
-    </Router>
+    <MainContent />
   );
 }
 
