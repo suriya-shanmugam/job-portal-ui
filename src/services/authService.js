@@ -42,7 +42,6 @@ export const authService = {
       // Basic user data
       const payload = {
         email: userData.email,
-        passwordHash: userData.password,
         role: userData.role,
         firstName: userData.firstName,
         lastName: userData.lastName
@@ -65,12 +64,7 @@ export const authService = {
       }
 
       const response = await axios.post(`${API_URL}/users`, payload);
-      const { user, token } = response.data;
-
-      // Store token, user info, and user ID
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
-      localStorage.setItem('userId', user.id);
+      const { user} = response.data;
 
       // Store companyId if user is a recruiter
       if (user.role === 'Recruiter' && user.companyId) {
@@ -80,7 +74,6 @@ export const authService = {
       return {
         success: true,
         user,
-        token
       };
     } catch (error) {
       console.error('Sign up error:', error);

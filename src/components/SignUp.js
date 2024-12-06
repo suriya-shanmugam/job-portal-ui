@@ -20,6 +20,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { authService } from '../services/authService';
 import { usePushNotificationService } from '../services/pushNotifyService'; // Import the hook
 import { useAuth0 } from '@auth0/auth0-react';
+import axios from 'axios';
 
 const SignUp = () => {
   const { user, getAccessTokenSilently } = useAuth0();
@@ -43,6 +44,10 @@ const SignUp = () => {
     const checkUserExists = async () => { 
 
       const token = await getAccessTokenSilently();
+      localStorage.setItem('token', token);
+      if (token) {
+        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      }
       if (user !== undefined && token !== undefined)
         setFormData(prev => (
         {
@@ -57,7 +62,6 @@ const SignUp = () => {
         if (response.userExists) {
           console.log('User already exists');
           navigate('/jobs');
-          localStorage.setItem('token', token);
           localStorage.setItem('email', response.user.email);
           localStorage.setItem('role', response.user.role);
           localStorage.setItem('firstName', response.user.firstName);
@@ -69,7 +73,7 @@ const SignUp = () => {
       setLoading(false);
     }
     checkUserExists();
-  }, [user]);
+  }, [user, getAccessTokenSilently, navigate]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -122,7 +126,8 @@ const SignUp = () => {
         user.email="test.com";*/
         console.log(user);
         subscribeUser(user.id,user.firstName,user.email);
-        console.log("subscribe triggered")
+        console.log("subscribe triggered");
+        navigate('/jobs');
       } catch (error) {
         console.error("Subscription failed:", error);
       }
