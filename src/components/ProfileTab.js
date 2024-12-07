@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -11,79 +11,53 @@ import {
   Card,
   CardContent,
   Avatar,
-  Tabs,
-  Tab,
   IconButton,
   Grid,
   Chip
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
-import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import WorkIcon from '@mui/icons-material/Work';
 import SchoolIcon from '@mui/icons-material/School';
 import PersonIcon from '@mui/icons-material/Person';
-
-const TabPanel = ({ children, value, index }) => (
-  <div role="tabpanel" hidden={value !== index}>
-    {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
-  </div>
-);
+import { peopleService } from '../services/peopleService';
 
 const ProfileTab = () => {
-  const [activeTab, setActiveTab] = useState(0);
   const [editMode, setEditMode] = useState(false);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState(null);
-  const [document, setDocument] = useState(null);
+  const [profile, setProfile] = useState(null);
 
-  // Dummy profile data
-  const [profile, setProfile] = useState({
-    fullName: 'John Doe',
-    email: 'john.doe@example.com',
-    phone: '+1 234 567 8900',
-    currentRole: 'Senior Software Engineer',
-    company: 'Tech Solutions Inc.',
-    experience: '5 years',
-    education: [
-      {
-        school: 'University of Technology',
-        degree: 'Bachelor of Computer Science',
-        year: '2019'
-      }
-    ],
-    skills: ['JavaScript', 'React', 'Node.js', 'Python', 'AWS'],
-    bio: 'Experienced software engineer passionate about creating efficient and scalable solutions.'
-  });
+  useEffect(() => {
+    fetchProfile();
+  }, []);
 
-  const handleTabChange = (event, newValue) => {
-    setActiveTab(newValue);
-  };
-
-  const handleInputChange = (field) => (event) => {
-    setProfile({
-      ...profile,
-      [field]: event.target.value
-    });
-  };
-
-  const handleFileChange = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        setError('File size should not exceed 5MB');
-        return;
-      }
-      
-      const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-      if (!allowedTypes.includes(file.type)) {
-        setError('Please upload a PDF or Word document');
-        return;
-      }
-
-      setDocument(file);
-      setError(null);
+  const fetchProfile = async () => {
+    try {
+      setLoading(true);
+      const data = await peopleService.getCurrentProfile();
+      setProfile(data);
+    } catch (err) {
+      setError('Failed to fetch profile data');
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const handleInputChange = (field, isNestedArray = false, index = null) => (event) => {
+    if (isNestedArray && index !== null) {
+      const newArray = [...profile[field]];
+      newArray[index] = { ...newArray[index], [event.target.name]: event.target.value };
+      setProfile({ ...profile, [field]: newArray });
+    } else {
+      setProfile({ ...profile, [field]: event.target.value });
+    }
+  };
+
+  const handleSkillsChange = (event) => {
+    const skills = event.target.value.split(',').map(skill => skill.trim());
+    setProfile({ ...profile, skills });
   };
 
   const handleSave = async () => {
@@ -92,16 +66,43 @@ const ProfileTab = () => {
     setSuccess(false);
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const updatedProfile = {
+        phone: profile.phone,
+        address: profile.address,
+        skills: profile.skills,
+        professionalExperience: profile.professionalExperience,
+        professionalSummary: profile.professionalSummary,
+        education: profile.education,
+        experience: profile.experience
+      };
+
+      await peopleService.updateProfile(updatedProfile);
       setSuccess(true);
       setEditMode(false);
+      await fetchProfile(); // Refresh profile data
     } catch (err) {
       setError('Failed to update profile. Please try again.');
+      console.error(err);
     } finally {
       setLoading(false);
     }
   };
+
+  if (loading && !profile) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Alert severity="error">Failed to load profile data</Alert>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ p: 3, maxWidth: 1200, mx: 'auto' }}>
@@ -116,12 +117,12 @@ const ProfileTab = () => {
               fontSize: '2.5rem'
             }}
           >
-            {profile.fullName.charAt(0)}
+            {profile.name ? profile.name.charAt(0) : profile.userId.firstName.charAt(0)}
           </Avatar>
           <Box sx={{ ml: 3, flex: 1 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
               <Typography variant="h4" component="h1">
-                {profile.fullName}
+                {profile.name || `${profile.userId.firstName} ${profile.userId.lastName}`}
               </Typography>
               <IconButton 
                 onClick={() => setEditMode(!editMode)}
@@ -131,7 +132,7 @@ const ProfileTab = () => {
               </IconButton>
             </Box>
             <Typography variant="h6" color="textSecondary">
-              {profile.currentRole} at {profile.company}
+              {profile.professionalSummary}
             </Typography>
           </Box>
         </Box>
@@ -155,19 +156,19 @@ const ProfileTab = () => {
               <Box sx={{ display: 'flex', alignItems: 'center' }}>
                 <PersonIcon sx={{ mr: 1 }} />
                 <Typography variant="body1">
-                  {profile.email}
+                  {profile.userId.email}
                 </Typography>
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center' }}>
                 <WorkIcon sx={{ mr: 1 }} />
                 <Typography variant="body1">
-                  {profile.experience} of experience
+                  {profile.professionalExperience} years of experience
                 </Typography>
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center' }}>
                 <SchoolIcon sx={{ mr: 1 }} />
                 <Typography variant="body1">
-                  {profile.education[0].degree}
+                  {profile.education?.[0]?.collegeName || 'No education listed'}
                 </Typography>
               </Box>
             </Stack>
@@ -175,149 +176,171 @@ const ProfileTab = () => {
         </Grid>
       </Paper>
 
-      {/* Tabs Section */}
-      <Paper elevation={3}>
-        <Tabs value={activeTab} onChange={handleTabChange} centered>
-          <Tab label="Profile Details" />
-          <Tab label="Resume & Documents" />
-        </Tabs>
-
-        <TabPanel value={activeTab} index={0}>
-          <Stack spacing={3}>
-            {editMode ? (
-              <>
-                <TextField
-                  label="Full Name"
-                  value={profile.fullName}
-                  onChange={handleInputChange('fullName')}
-                  fullWidth
-                />
-                <TextField
-                  label="Current Role"
-                  value={profile.currentRole}
-                  onChange={handleInputChange('currentRole')}
-                  fullWidth
-                />
-                <TextField
-                  label="Company"
-                  value={profile.company}
-                  onChange={handleInputChange('company')}
-                  fullWidth
-                />
-                <TextField
-                  label="School"
-                  value={profile.education[0].school}
-                  onChange={handleInputChange('education')}
-                  fullWidth
-                />
-                <TextField
-                  label="Bio"
-                  value={profile.bio}
-                  onChange={handleInputChange('bio')}
-                  multiline
-                  rows={4}
-                  fullWidth
-                />
-                <Button
-                  variant="contained"
-                  onClick={handleSave}
-                  disabled={loading}
-                >
-                  {loading ? <CircularProgress size={24} /> : 'Save Changes'}
-                </Button>
-              </>
-            ) : (
-              <>
-                <Card variant="outlined">
-                  <CardContent>
-                    <Typography variant="h6" gutterBottom>
-                      Professional Summary
-                    </Typography>
-                    <Typography variant="body1" paragraph>
-                      {profile.bio}
-                    </Typography>
-                    
-                    <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>
-                      Skills
-                    </Typography>
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                      {profile.skills.map((skill, index) => (
-                        <Chip key={index} label={skill} />
-                      ))}
-                    </Box>
-
-                    <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>
-                      Education
-                    </Typography>
-                    {profile.education.map((edu, index) => (
-                      <Box key={index}>
-                        <Typography variant="subtitle1">
-                          {edu.school}
-                        </Typography>
-                        <Typography variant="body2" color="textSecondary">
-                          {edu.degree} • {edu.year}
-                        </Typography>
-                      </Box>
-                    ))}
-                  </CardContent>
-                </Card>
-              </>
-            )}
-          </Stack>
-        </TabPanel>
-
-        <TabPanel value={activeTab} index={1}>
-          <Card variant="outlined">
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Resume
-              </Typography>
-              <Box
-                sx={{
-                  border: '2px dashed #ccc',
-                  borderRadius: 1,
-                  p: 3,
-                  textAlign: 'center',
-                  backgroundColor: '#fafafa',
-                  cursor: 'pointer',
-                  '&:hover': {
-                    backgroundColor: '#f5f5f5'
-                  }
-                }}
-                onClick={() => document.getElementById('resume-upload').click()}
-              >
-                <input
-                  id="resume-upload"
-                  type="file"
-                  accept=".pdf,.doc,.docx"
-                  onChange={handleFileChange}
-                  style={{ display: 'none' }}
-                />
-                <CloudUploadIcon sx={{ fontSize: 48, color: '#666', mb: 1 }} />
-                <Typography variant="h6" gutterBottom>
-                  {document ? document.name : 'Upload Resume'}
-                </Typography>
-                <Typography variant="body2" color="textSecondary">
-                  Drag and drop or click to upload (PDF, DOC, DOCX)
-                </Typography>
-              </Box>
-
-              {document && (
-                <Box sx={{ mt: 2 }}>
-                  <Typography variant="subtitle1" gutterBottom>
-                    Current Resume:
-                  </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Typography>{document.name}</Typography>
-                    <Button size="small" onClick={() => setDocument(null)}>
-                      Remove
-                    </Button>
-                  </Box>
+      {/* Profile Details */}
+      <Paper elevation={3} sx={{ p: 3 }}>
+        <Stack spacing={3}>
+          {editMode ? (
+            <>
+              <TextField
+                label="Phone"
+                value={profile.phone || ''}
+                onChange={handleInputChange('phone')}
+                fullWidth
+              />
+              <TextField
+                label="Address"
+                value={profile.address || ''}
+                onChange={handleInputChange('address')}
+                fullWidth
+              />
+              <TextField
+                label="Professional Experience (years)"
+                type="number"
+                value={profile.professionalExperience || ''}
+                onChange={handleInputChange('professionalExperience')}
+                fullWidth
+              />
+              <TextField
+                label="Professional Summary"
+                value={profile.professionalSummary || ''}
+                onChange={handleInputChange('professionalSummary')}
+                multiline
+                rows={4}
+                fullWidth
+              />
+              <TextField
+                label="Skills (comma-separated)"
+                value={profile.skills?.join(', ') || ''}
+                onChange={handleSkillsChange}
+                fullWidth
+                helperText="Enter skills separated by commas"
+              />
+              
+              <Typography variant="h6" gutterBottom>Education</Typography>
+              {profile.education?.map((edu, index) => (
+                <Box key={index} sx={{ display: 'flex', gap: 2 }}>
+                  <TextField
+                    label="College Name"
+                    name="collegeName"
+                    value={edu.collegeName || ''}
+                    onChange={handleInputChange('education', true, index)}
+                    fullWidth
+                  />
+                  <TextField
+                    label="From Year"
+                    name="fromYear"
+                    type="number"
+                    value={edu.fromYear || ''}
+                    onChange={handleInputChange('education', true, index)}
+                  />
+                  <TextField
+                    label="To Year"
+                    name="toYear"
+                    type="number"
+                    value={edu.toYear || ''}
+                    onChange={handleInputChange('education', true, index)}
+                  />
                 </Box>
-              )}
-            </CardContent>
-          </Card>
-        </TabPanel>
+              ))}
+
+              <Typography variant="h6" gutterBottom>Experience</Typography>
+              {profile.experience?.map((exp, index) => (
+                <Box key={index} sx={{ display: 'flex', gap: 2 }}>
+                  <TextField
+                    label="Company Name"
+                    name="companyName"
+                    value={exp.companyName || ''}
+                    onChange={handleInputChange('experience', true, index)}
+                    fullWidth
+                  />
+                  <TextField
+                    label="From Year"
+                    name="fromYear"
+                    type="number"
+                    value={exp.fromYear || ''}
+                    onChange={handleInputChange('experience', true, index)}
+                  />
+                  <TextField
+                    label="To Year"
+                    name="toYear"
+                    type="number"
+                    value={exp.toYear || ''}
+                    onChange={handleInputChange('experience', true, index)}
+                    placeholder="Leave empty if current"
+                  />
+                </Box>
+              ))}
+
+              <Button
+                variant="contained"
+                onClick={handleSave}
+                disabled={loading}
+              >
+                {loading ? <CircularProgress size={24} /> : 'Save Changes'}
+              </Button>
+            </>
+          ) : (
+            <>
+              <Card variant="outlined">
+                <CardContent>
+                  <Typography variant="h6" gutterBottom>
+                    Contact Information
+                  </Typography>
+                  <Typography variant="body1" paragraph>
+                    Phone: {profile.phone || 'Not provided'}
+                  </Typography>
+                  <Typography variant="body1" paragraph>
+                    Address: {profile.address || 'Not provided'}
+                  </Typography>
+                  
+                  <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>
+                    Professional Summary
+                  </Typography>
+                  <Typography variant="body1" paragraph>
+                    {profile.professionalSummary || 'No summary provided'}
+                  </Typography>
+                  
+                  <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>
+                    Skills
+                  </Typography>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                    {profile.skills?.map((skill, index) => (
+                      <Chip key={index} label={skill} />
+                    ))}
+                  </Box>
+
+                  <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>
+                    Education
+                  </Typography>
+                  {profile.education?.map((edu, index) => (
+                    <Box key={index} sx={{ mb: 2 }}>
+                      <Typography variant="subtitle1">
+                        {edu.collegeName}
+                      </Typography>
+                      <Typography variant="body2" color="textSecondary">
+                        {edu.fromYear} - {edu.toYear}
+                      </Typography>
+                    </Box>
+                  ))}
+
+                  <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>
+                    Experience
+                  </Typography>
+                  {profile.experience?.map((exp, index) => (
+                    <Box key={index} sx={{ mb: 2 }}>
+                      <Typography variant="subtitle1">
+                        {exp.companyName}
+                      </Typography>
+                      <Typography variant="body2" color="textSecondary">
+                        {exp.fromYear} - {exp.toYear || 'Present'}
+                      </Typography>
+                    </Box>
+                  ))}
+                </CardContent>
+              </Card>
+            </>
+          )}
+        </Stack>
       </Paper>
     </Box>
   );

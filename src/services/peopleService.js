@@ -3,8 +3,6 @@ import { authService } from './authService';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000/api/v1';
 
-//const API_BASE_URL = 'http://localhost:3000/api/v1';
-
 export const peopleService = {
   // Get paginated people with search and filters
   getPeople: async (page = 1, limit = 10, search = '', filters = {}) => {
@@ -12,8 +10,6 @@ export const peopleService = {
       const currentUserId = authService.getUserId();
       const response = await axios.get(`${API_URL}/applicants/${currentUserId}/allapplicants`);
       
-      //const responsejson = await response.json();
-      //console.log(responsejson)
       const people = response.data.data;
       console.log(people)
       let filteredPeople = [...people];
@@ -96,6 +92,29 @@ export const peopleService = {
     }
   },
 
+  // Get current user profile
+  getCurrentProfile: async () => {
+    try {
+      const currentUserId = authService.getUserId();
+      const response = await axios.get(`${API_URL}/applicants/${currentUserId}`);
+      return response.data.data;
+    } catch (error) {
+      console.error('Failed to fetch profile:', error);
+      throw error;
+    }
+  },
+
+  // Update profile
+  updateProfile: async (profileData) => {
+    try {
+      const currentUserId = authService.getUserId();
+      const response = await axios.put(`${API_URL}/applicants/${currentUserId}`, profileData);
+      return response.data.data;
+    } catch (error) {
+      console.error('Failed to update profile:', error);
+      throw error;
+    }
+  },
 
   // Toggle follow person
   toggleFollow: async (id, isCurrentlyFollowing) => {
@@ -128,7 +147,6 @@ export const peopleService = {
       const currentUserId = authService.getUserId();
       const response = await axios.get(`${API_URL}/applicants/${currentUserId}/allapplicants`);
       
-      //const responsejson = await response.json();
       const applicants = response.data;
       const roles = [...new Set(applicants.data.map(p => p.userId.role))];
       
