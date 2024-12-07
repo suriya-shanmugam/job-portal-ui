@@ -29,6 +29,7 @@ import MyCompanyTab from './components/MyCompanyTab';
 import NotificationPanel from './components/NotificationPanel';
 import SignIn from './components/SignIn';
 import SignUp from './components/SignUp';
+import ChatAssistant from './components/ChatAssistant';
 import { authService } from './services/authService';
 import './App.css';
 
@@ -224,6 +225,9 @@ function MainContent() {
           </Routes>
         </Box>
       </Box>
+
+      {/* Chat Assistant - Only show when user is authenticated */}
+      {user && <ChatAssistant />}
     </div>
   );
 }
