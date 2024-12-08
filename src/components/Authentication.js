@@ -23,6 +23,7 @@ const Authentication = () => {
   // }
   const handleLogin = async () => {
     await loginWithRedirect({
+      prompt: 'select_account',
       appState: {
         returnTo: "/signup",
       },
@@ -30,6 +31,7 @@ const Authentication = () => {
   };
   const handleSignUp = async () => {
     await loginWithRedirect({
+      prompt: 'select_account',
       appState: {
         returnTo: "/signup",
       },

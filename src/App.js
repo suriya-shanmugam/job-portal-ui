@@ -49,12 +49,18 @@ function MainContent() {
       setUser(currentUser);
       setIsRecruiter(currentUser.role === 'Recruiter');
       
-      // Redirect to appropriate initial route based on role
       if (location.pathname === '/') {
         navigate(currentUser.role === 'Recruiter' ? '/people' : '/feeds');
       }
     }
   }, []);
+
+  useEffect(() => {
+    const role = localStorage.getItem('role');
+    if (role && role === 'Recruiter') {
+      setIsRecruiter(true);
+    }
+  });
 
   const handleSignOut = () => {
     logout({
@@ -150,7 +156,7 @@ function MainContent() {
                 <Authentication/>
               }
             />
-            <Route path="/signup" element={<ProtectedRoute component={SignUp}/>} />
+            <Route path="/signup" element={<ProtectedRoute setIsRecruiter={setIsRecruiter} component={SignUp} />} />
             <Route
               path="/home"
               element={

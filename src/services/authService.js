@@ -66,11 +66,6 @@ export const authService = {
       const response = await axios.post(`${API_URL}/users`, payload);
       const { user} = response.data;
 
-      // Store companyId if user is a recruiter
-      if (user.role === 'Recruiter' && user.companyId) {
-        localStorage.setItem('companyId', user.companyId);
-      }
-
       return {
         success: true,
         user,
