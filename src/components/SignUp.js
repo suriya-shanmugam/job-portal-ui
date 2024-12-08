@@ -95,7 +95,7 @@ const SignUp = () => {
         user.firstname="hello";
         user.email="test.com";*/
         console.log(user);
-        subscribeUser(user.id,user.firstName,user.email);
+        await subscribeUser(user.id,user.firstName,user.email);
         console.log("subscribe triggered")
       } catch (error) {
         console.error("Subscription failed:", error);
