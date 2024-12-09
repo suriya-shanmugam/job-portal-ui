@@ -31,7 +31,7 @@ jobs:
       - name: Log in to Amazon ECR
         run: |
           echo "Logging in to Amazon ECR"
-          aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+          aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin public.ecr.aws/t5x3g0l1/careercon/client-react
 
       # Step 5: Build the Docker image
       - name: Build Docker image
