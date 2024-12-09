@@ -49,10 +49,21 @@ jobs:
       - name: Update ECS service with new image
         run: |
           echo "Updating ECS service to use the new image"
-          # Update ECS service to use the new Docker image in public ECR
+
+          # Register a new ECS task definition with the new image
+          TASK_DEFINITION=$(aws ecs describe-task-definition --task-definition ${{ secrets.ECS_TASK_DEFINITION }} --query 'taskDefinition.taskDefinitionArn' --output text)
+
+          # Create a new revision of the task definition with the updated image
+          UPDATED_TASK_DEFINITION=$(aws ecs register-task-definition \
+            --family ${{ secrets.ECS_FAMILY_NAME }} \
+            --container-definitions "$(aws ecs describe-task-definition --task-definition $TASK_DEFINITION --query 'taskDefinition.containerDefinitions' --output json | jq '.[0] | .image = \"public.ecr.aws/t5x3g0l1/careercon/client-react:${GITHUB_SHA}\"')")
+
+          # Get the new revision ARN of the task definition
+          NEW_TASK_DEFINITION_ARN=$(echo $UPDATED_TASK_DEFINITION | jq -r '.taskDefinition.taskDefinitionArn')
+
+          # Update the ECS service to use the new task definition
           aws ecs update-service \
             --cluster ${{ secrets.ECS_CLUSTER_NAME }} \
             --service ${{ secrets.ECS_SERVICE_NAME }} \
-            --force-new-deployment \
-            --image public.ecr.aws/t5x3g0l1/careercon/client-react:${GITHUB_SHA}
-
+            --task-definition $NEW_TASK_DEFINITION_ARN \
+            --force-new-deployment
