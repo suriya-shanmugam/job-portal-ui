@@ -72,7 +72,7 @@ const SignUp = () => {
             if (user.role === 'Recruiter' && user.companyId) {
               localStorage.setItem('companyId', user.companyId);
             }
-            subscribeUser(user.id,user.firstName,user.email);
+            await subscribeUser(user.id,user.firstName,user.email);
             navigate('/jobs');
           }
         } catch (error) {
@@ -120,10 +120,11 @@ const SignUp = () => {
         let user = result.user;
         localStorage.setItem('user', JSON.stringify(user));
         localStorage.setItem('userId', user.id);
+        localStorage.setItem('role', user.role);
+        console.log('User role is: ', user.role);
 
         // Store companyId if user is a recruiter
         if (user.role === 'Recruiter' && user.companyId) {
-          localStorage.setItem('role', user.role);
           localStorage.setItem('companyId', user.companyId);
         }
         navigate('/home');
@@ -144,8 +145,8 @@ const SignUp = () => {
         user.firstname="hello";
         user.email="test.com";*/
         console.log(user);
-        subscribeUser(user.id,user.firstName,user.email);
-        console.log("subscribe triggered");
+        await subscribeUser(user.id,user.firstName,user.email);
+        console.log("subscribe triggered")
       } catch (error) {
         console.error("Subscription failed:", error);
       }

@@ -28,6 +28,7 @@ import MyCompanyTab from './components/MyCompanyTab';
 import NotificationPanel from './components/NotificationPanel';
 import SignIn from './components/SignIn';
 import SignUp from './components/SignUp';
+import ChatAssistant from './components/ChatAssistant';
 import Authentication from './components/Authentication';
 import { ProtectedRoute } from './components/AuthenticationGuard';
 import { authService } from './services/authService';
@@ -61,6 +62,7 @@ function MainContent() {
 
   // Get tabs based on user role
   const getTabs = () => {
+    console.log('isRecruiter:', isRecruiter);
     if (isRecruiter) {
       return [
         { label: 'People', path: '/people' },
@@ -211,6 +213,9 @@ function MainContent() {
           </Routes>
         </Box>
       </Box>
+
+      {/* Chat Assistant - Only show when user is authenticated */}
+      {user && <ChatAssistant />}
     </div>
   );
 }
