@@ -47,33 +47,12 @@ jobs:
           docker push public.ecr.aws/t5x3g0l1/careercon/client-react:latest
           docker push public.ecr.aws/t5x3g0l1/careercon/client-react:${GITHUB_SHA}
 
-      # Step 8: Update ECS service to use the new image
-      - name: Update ECS service with new image
-        run: |
-          echo "Updating ECS service to use the new image"
-
-          # Retrieve the current task definition ARN
-          TASK_DEFINITION=$(aws ecs describe-task-definition --task-definition ${{ secrets.ECS_TASK_DEFINITION }} --query 'taskDefinition.taskDefinitionArn' --output text)
-
-          # Retrieve the container definitions from the current task definition
-          CONTAINER_DEFINITION=$(aws ecs describe-task-definition --task-definition $TASK_DEFINITION --query 'taskDefinition.containerDefinitions' --output json)
-
-          # Update the container definition with the new image and memory settings
-          UPDATED_CONTAINER_DEFINITION=$(echo "$CONTAINER_DEFINITION" | jq \
-            --arg IMAGE "public.ecr.aws/t5x3g0l1/careercon/client-react:${GITHUB_SHA}" \
-            '.[0] | .image = $IMAGE | .memory = 512 | .memoryReservation = 512')
-
-          # Register the updated task definition with the new image
-          REGISTERED_TASK_DEFINITION=$(aws ecs register-task-definition \
-            --family ${{ secrets.ECS_FAMILY_NAME }} \
-            --container-definitions "$UPDATED_CONTAINER_DEFINITION")
-
-          # Extract the new task definition ARN
-          NEW_TASK_DEFINITION_ARN=$(echo $REGISTERED_TASK_DEFINITION | jq -r '.taskDefinition.taskDefinitionArn')
-
-          # Update the ECS service to use the new task definition
-          aws ecs update-service \
-            --cluster ${{ secrets.ECS_CLUSTER_NAME }} \
-            --service ${{ secrets.ECS_SERVICE_NAME }} \
-            --task-definition $NEW_TASK_DEFINITION_ARN \
-            --force-new-deployment
+      # Step 8: Deploy to ECS using imehedi/actions-awscli-v2
+      - name: Deploy to ECS
+        uses: imehedi/actions-awscli-v2@latest
+        with:
+          args: ecs update-service --cluster ${{ secrets.ECS_CLUSTER_NAME }} --service ${{ secrets.ECS_SERVICE_NAME }} --force-new-deployment
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
