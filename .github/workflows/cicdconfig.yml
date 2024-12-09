@@ -19,22 +19,40 @@ jobs:
       - name: Print all environment variables
         run: printenv
 
-      # Step 3: Log in to Docker registry
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
+      # Step 3: Set up AWS CLI and authenticate to Amazon ECR
+      - name: Set up AWS CLI
+        uses: aws-actions/configure-aws-credentials@v2
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-          
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
 
-      # Step 4: Build the Docker image m
+      # Step 4: Log in to Amazon ECR
+      - name: Log in to Amazon ECR
+        run: |
+          echo "Logging in to Amazon ECR"
+          aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+
+      # Step 5: Build the Docker image
       - name: Build Docker image
         run: |
-          docker build -t suriyashanmugam/job-portal-ui:latest .
-          docker tag suriyashanmugam/job-portal-ui:latest suriyashanmugam/job-portal-ui:${GITHUB_SHA}
+          docker build -t public.ecr.aws/t5x3g0l1/careercon/client-react:latest .
+          docker tag public.ecr.aws/t5x3g0l1/careercon/client-react:latest public.ecr.aws/t5x3g0l1/careercon/client-react:${GITHUB_SHA}
 
-      # Step 5: 
-      - name: Push Docker image
+      # Step 6: Push Docker image to ECR
+      - name: Push Docker image to ECR
         run: |
-          docker push suriyashanmugam/job-portal-ui:latest
-          docker push suriyashanmugam/job-portal-ui:${GITHUB_SHA}
+          docker push public.ecr.aws/t5x3g0l1/careercon/client-react:latest
+          docker push public.ecr.aws/t5x3g0l1/careercon/client-react:${GITHUB_SHA}
+
+      # Step 7: Update ECS service to use the new image
+      - name: Update ECS service with new image
+        run: |
+          echo "Updating ECS service to use the new image"
+          # Update ECS service to use the new Docker image in public ECR
+          aws ecs update-service \
+            --cluster ${{ secrets.ECS_CLUSTER_NAME }} \
+            --service ${{ secrets.ECS_SERVICE_NAME }} \
+            --force-new-deployment \
+            --image public.ecr.aws/t5x3g0l1/careercon/client-react:${GITHUB_SHA}
+
