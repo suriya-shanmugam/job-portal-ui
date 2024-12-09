@@ -39,33 +39,22 @@ function MainContent() {
   const navigate = useNavigate();
   const location = useLocation();
   const [currentTab, setCurrentTab] = useState(0);
-  const [isRecruiter, setIsRecruiter] = useState(false);
-  const [user, setUser] = useState(null);
+  let isRecruiter = false;
+  let user = null
   const { logout } = useAuth0();
 
-  useEffect(() => {
-    const currentUser = authService.getCurrentUser();
-    if (currentUser) {
-      setUser(currentUser);
-      setIsRecruiter(currentUser.role === 'Recruiter');
-      
-      if (location.pathname === '/') {
-        navigate(currentUser.role === 'Recruiter' ? '/people' : '/feeds');
-      }
-    }
-  }, []);
-
-  useEffect(() => {
-    const role = localStorage.getItem('role');
-    if (role && role === 'Recruiter') {
-      setIsRecruiter(true);
-    }
-  });
+  console.log("App.js Use effect");
+  const role = localStorage.getItem('role');
+  user = authService.getCurrentUser();
+  if (role === 'Recruiter') {
+      isRecruiter = true;
+  }
 
   const handleSignOut = () => {
     logout({
       logoutParams: {
           returnTo: 'http://localhost:3001/',
+          federated: true,
       },
     });
   };
@@ -156,7 +145,7 @@ function MainContent() {
                 <Authentication/>
               }
             />
-            <Route path="/signup" element={<ProtectedRoute setIsRecruiter={setIsRecruiter} component={SignUp} />} />
+            <Route path="/signup" element={<ProtectedRoute component={SignUp} />} />
             <Route
               path="/home"
               element={

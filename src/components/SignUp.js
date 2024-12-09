@@ -22,7 +22,7 @@ import { usePushNotificationService } from '../services/pushNotifyService'; // I
 import { useAuth0 } from '@auth0/auth0-react';
 import axios from 'axios';
 
-const SignUp = ({setIsRecruiter}) => {
+const SignUp = () => {
   const { user, getAccessTokenSilently } = useAuth0();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
@@ -49,32 +49,35 @@ const SignUp = ({setIsRecruiter}) => {
       if (token) {
         axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       }
-      if (user !== undefined && token !== undefined)
+      if (user !== undefined && token !== undefined){
+        console.log('User:', user);
         setFormData(prev => (
           {
             ...prev,
             email: user.email
           }
         ));
-      try {
-        console.log('Checking if user exists:', user.email);
-        const response = await authService.checkIfUserExists(user.email);
-        console.log('User exists:', response.userExists);
-        if (response.userExists) {
-          console.log('User already exists');
-          let user = response.user;
-          localStorage.setItem('user', JSON.stringify(user));
-          localStorage.setItem('userId', user.id);
-          
-          // Store companyId if user is a recruiter
-          if (user.role === 'Recruiter' && user.companyId) {
-            setIsRecruiter(true);
-            localStorage.setItem('companyId', user.companyId);
+        try {
+          console.log('Checking if user exists:', user.email);
+          const response = await authService.checkIfUserExists(user.email);
+          console.log('User exists:', response.userExists);
+          if (response.userExists) {
+            console.log('User already exists');
+            let user = response.user;
+            localStorage.setItem('user', JSON.stringify(user));
+            localStorage.setItem('role', user.role);
+            localStorage.setItem('userId', user.id);
+            
+            // Store companyId if user is a recruiter
+            if (user.role === 'Recruiter' && user.companyId) {
+              localStorage.setItem('companyId', user.companyId);
+            }
+            subscribeUser(user.id,user.firstName,user.email);
+            navigate('/jobs');
           }
-          navigate('/jobs');
+        } catch (error) {
+          console.error('Error checking user existence:', error);
         }
-      } catch (error) {
-        console.error('Error checking user existence:', error);
       }
       setLoading(false);
     }
@@ -110,6 +113,7 @@ const SignUp = ({setIsRecruiter}) => {
     setLoading(true);
 
     try {
+      console.log(formData)
       const result = await authService.signUp(formData);
       
       if (result.success) {
@@ -133,14 +137,14 @@ const SignUp = ({setIsRecruiter}) => {
       setLoading(false);
       try {
         // Trigger the subscribeUser function with the user's data
-        //const user = authService.getCurrentUser();
+        const user = authService.getCurrentUser();
         
         /*let user = {};
         user.id="123";
         user.firstname="hello";
         user.email="test.com";*/
         console.log(user);
-        //subscribeUser(user.id,user.firstName,user.email);
+        subscribeUser(user.id,user.firstName,user.email);
         console.log("subscribe triggered");
       } catch (error) {
         console.error("Subscription failed:", error);
