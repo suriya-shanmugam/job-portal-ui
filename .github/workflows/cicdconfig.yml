@@ -54,14 +54,14 @@ jobs:
           TASK_DEFINITION=$(aws ecs describe-task-definition --task-definition ${{ secrets.ECS_TASK_DEFINITION }} --query 'taskDefinition.taskDefinitionArn' --output text)
 
           # Create a new revision of the ECS task definition with the updated image
-          UPDATED_TASK_DEFINITION=$(aws ecs describe-task-definition --task-definition $TASK_DEFINITION --query 'taskDefinition.containerDefinitions' --output json | jq \
+          UPDATED_CONTAINER_DEFINITION=$(echo "$CONTAINER_DEFINITION" | jq \
             --arg IMAGE "public.ecr.aws/t5x3g0l1/careercon/client-react:${GITHUB_SHA}" \
-            '.[0] | .image = $IMAGE')
+            '.[0] | .image = $IMAGE | .memory = 512 | .memoryReservation = 512')
 
           # Register the updated task definition with the new image
           REGISTERED_TASK_DEFINITION=$(aws ecs register-task-definition \
             --family ${{ secrets.ECS_FAMILY_NAME }} \
-            --container-definitions "$UPDATED_TASK_DEFINITION")
+            --container-definitions "$UPDATED_CONTAINER_DEFINITION")
 
           # Extract the new task definition ARN
           NEW_TASK_DEFINITION_ARN=$(echo $REGISTERED_TASK_DEFINITION | jq -r '.taskDefinition.taskDefinitionArn')
