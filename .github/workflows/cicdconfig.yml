@@ -17,28 +17,31 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
-      # Step 3: Print environment variables for debugging
+      # Step 3: Print all environment variables (optional, useful for debugging)
       - name: Print all environment variables
         run: printenv
 
-      # Step 4: Log in to Docker Hub (for pushing images)
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
+      # Step 4: Set up AWS CLI and authenticate to Amazon ECR
+      - name: Set up AWS CLI
+        uses: aws-actions/configure-aws-credentials@v2
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
 
-      # Step 5: Build the Docker image
+      # Step 5: Log in to Amazon ECR
+      - name: Log in to Amazon ECR
+        run: |
+          echo "Logging in to Amazon ECR"
+          aws ecr-public get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin public.ecr.aws/t5x3g0l1/careercon/client-react
+
+      # Step 6: Build Docker image
       - name: Build Docker image
         run: |
           docker build -t public.ecr.aws/t5x3g0l1/careercon/client-react:latest .
           docker tag public.ecr.aws/t5x3g0l1/careercon/client-react:latest public.ecr.aws/t5x3g0l1/careercon/client-react:${GITHUB_SHA}
 
-      # Step 6: Log in to Amazon ECR
-      - name: Log in to Amazon ECR
-        uses: aws-actions/amazon-ecr-login@v1
-
-      # Step 7: Push Docker image to Amazon ECR
+      # Step 7: Push Docker image to ECR
       - name: Push Docker image to ECR
         run: |
           docker push public.ecr.aws/t5x3g0l1/careercon/client-react:latest
@@ -52,18 +55,18 @@ jobs:
           # Retrieve the current task definition ARN
           TASK_DEFINITION=$(aws ecs describe-task-definition --task-definition ${{ secrets.ECS_TASK_DEFINITION }} --query 'taskDefinition.taskDefinitionArn' --output text)
 
-          # Retrieve the current task definition JSON (container definitions included)
+          # Retrieve the container definitions from the current task definition
           CONTAINER_DEFINITION=$(aws ecs describe-task-definition --task-definition $TASK_DEFINITION --query 'taskDefinition.containerDefinitions' --output json)
 
-          # Update the container definition with the new image and required memory settings
+          # Update the container definition with the new image and memory settings
           UPDATED_CONTAINER_DEFINITION=$(echo "$CONTAINER_DEFINITION" | jq \
             --arg IMAGE "public.ecr.aws/t5x3g0l1/careercon/client-react:${GITHUB_SHA}" \
-            '.[] | .image = $IMAGE | .memory = 512 | .memoryReservation = 512')
+            '.[0] | .image = $IMAGE | .memory = 512 | .memoryReservation = 512')
 
-          # Register the new task definition with updated image and memory settings
+          # Register the updated task definition with the new image
           REGISTERED_TASK_DEFINITION=$(aws ecs register-task-definition \
             --family ${{ secrets.ECS_FAMILY_NAME }} \
-            --container-definitions "$(echo "$UPDATED_CONTAINER_DEFINITION" | jq -c '.')")
+            --container-definitions "$UPDATED_CONTAINER_DEFINITION")
 
           # Extract the new task definition ARN
           NEW_TASK_DEFINITION_ARN=$(echo $REGISTERED_TASK_DEFINITION | jq -r '.taskDefinition.taskDefinitionArn')
