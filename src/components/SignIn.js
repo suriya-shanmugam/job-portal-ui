@@ -11,8 +11,7 @@ import {
 } from "@mui/material";
 import { useNavigate, Link } from "react-router-dom";
 import { authService } from "../services/authService";
-import { usePushNotificationService } from '../services/pushNotifyService'; // Import the hook
-
+import { usePushNotificationService } from "../services/pushNotifyService"; // Import the hook
 
 const SignIn = () => {
   const navigate = useNavigate();
@@ -23,7 +22,7 @@ const SignIn = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const { subscribeUser } = usePushNotificationService();
-  
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -44,8 +43,6 @@ const SignIn = () => {
       );
 
       if (result.success) {
-         
-        
         navigate("/");
       } else {
         setError(result.error);
@@ -57,14 +54,14 @@ const SignIn = () => {
       try {
         // Trigger the subscribeUser function with the user's data
         const user = authService.getCurrentUser();
-        
+
         /*let user = {};
         user.id="123";
         user.firstname="hello";
         user.email="test.com";*/
         console.log(user);
-        subscribeUser(user.id,user.firstName,user.email);
-        console.log("subscribe triggered")
+        subscribeUser(user.id, user.firstName, user.email);
+        console.log("subscribe triggered");
       } catch (error) {
         console.error("Subscription failed:", error);
       }
@@ -121,7 +118,15 @@ const SignIn = () => {
               type="submit"
               fullWidth
               variant="contained"
-              sx={{ mt: 3, mb: 2 }}
+              sx={{
+                mt: 3,
+                mb: 2,
+                backgroundColor: "#FF0000", // Custom background color
+                color: "white", // Set text color to white
+                "&:hover": {
+                  backgroundColor: "#45a049", // Custom hover color
+                },
+              }}
               disabled={loading}
             >
               {loading ? <CircularProgress size={24} /> : "Sign In"}
@@ -129,7 +134,7 @@ const SignIn = () => {
 
             <Box sx={{ textAlign: "center" }}>
               <Link to="/signup" style={{ textDecoration: "none" }}>
-                <Typography color="primary">
+                <Typography color="secondary">
                   Don't have an account? Sign Up
                 </Typography>
               </Link>
