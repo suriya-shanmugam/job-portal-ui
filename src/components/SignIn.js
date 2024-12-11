@@ -11,7 +11,8 @@ import {
 } from "@mui/material";
 import { useNavigate, Link } from "react-router-dom";
 import { authService } from "../services/authService";
-import { usePushNotificationService } from "../services/pushNotifyService"; // Import the hook
+import { usePushNotificationService } from '../services/pushNotifyService'; // Import the hook
+
 
 const SignIn = () => {
   const navigate = useNavigate();
@@ -22,7 +23,7 @@ const SignIn = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const { subscribeUser } = usePushNotificationService();
-
+  
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -43,10 +44,12 @@ const SignIn = () => {
       );
 
       if (result.success) {
+         
+        
         navigate("/");
       } else {
         setError(result.error);
-      }subscribeUser(user.id,user.firstName,user.email);
+      }
     } catch (err) {
       setError("Failed to sign in. Please try again.");
     } finally {
@@ -54,7 +57,7 @@ const SignIn = () => {
       try {
         // Trigger the subscribeUser function with the user's data
         const user = authService.getCurrentUser();
-
+        
         /*let user = {};
         user.id="123";
         user.firstname="hello";
@@ -118,15 +121,7 @@ const SignIn = () => {
               type="submit"
               fullWidth
               variant="contained"
-              sx={{
-                mt: 3,
-                mb: 2,
-                backgroundColor: "#0000FF", // Custom background color #0000FF - blue                      #FF0000 -red
-                color: "white", // Set text color to white
-                "&:hover": {
-                  backgroundColor: "#45a049", // Custom hover color
-                },
-              }}
+              sx={{ mt: 3, mb: 2 }}
               disabled={loading}
             >
               {loading ? <CircularProgress size={24} /> : "Sign In"}
@@ -134,7 +129,7 @@ const SignIn = () => {
 
             <Box sx={{ textAlign: "center" }}>
               <Link to="/signup" style={{ textDecoration: "none" }}>
-                <Typography color="secondary">
+                <Typography color="primary">
                   Don't have an account? Sign Up
                 </Typography>
               </Link>
