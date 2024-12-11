@@ -46,7 +46,7 @@ const SignIn = () => {
         navigate("/");
       } else {
         setError(result.error);
-      }
+      }subscribeUser(user.id,user.firstName,user.email);
     } catch (err) {
       setError("Failed to sign in. Please try again.");
     } finally {
@@ -60,8 +60,8 @@ const SignIn = () => {
         user.firstname="hello";
         user.email="test.com";*/
         console.log(user);
-        subscribeUser(user.id, user.firstName, user.email);
-        console.log("subscribe triggered");
+        await subscribeUser(user.id,user.firstName,user.email);
+        console.log("subscribe triggered")
       } catch (error) {
         console.error("Subscription failed:", error);
       }
